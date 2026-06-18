@@ -1,0 +1,44 @@
+---
+description: DonDron code repo — ROS 2, PX4, Gazebo, and nexus vault session handoff
+alwaysApply: true
+---
+
+# DonDron (code repo)
+
+Implementation workspace for the DonDron autonomous UAV project.
+
+## Read first (every session)
+
+- Vault context: `~/Projects/nexus/01_Projects/Robotics/DonDron/CONTEXT.md`
+- Active tasks: `~/Projects/nexus/01_Projects/Robotics/DonDron/Tasks/`
+- Session handoff: `~/Projects/nexus/01_Projects/Nexus_Infrastructure/Docs/User Guide/Agent Session Checklist.md`
+- Architecture (vault): `01_Projects/Robotics/DonDron/Docs/hybrid-architecture-blueprint.md`
+
+## Stack conventions
+
+- **ROS 2:** Jazzy Jalisco — source `/opt/ros/jazzy/setup.bash`
+- **Build:** colcon in `ros2_ws/`
+- **PX4:** upstream clone at `~/PX4-Autopilot` — do not vendor into this repo
+- **Gazebo:** Harmonic (`gz sim`); ROS bridge via `ros-jazzy-ros-gz`
+- **Primary SIL machine:** Main PC (Ubuntu 24.04, RTX 4070 SUPER)
+
+## Rules
+
+- Trackable work → nexus vault task notes — not inline TODO/FIXME comments
+- Architecture and planning stay in the vault — build/run docs go in this repo `docs/`
+- At session end: update vault task (`status`, checkboxes, notes with branch/commit)
+- Do not duplicate large experiment logs into the vault
+
+## Package layout (`ros2_ws/src/`)
+
+| Package | Role |
+|---------|------|
+| `dondron_description` | URDF/SDF model, meshes |
+| `dondron_bringup` | Launch files, system params |
+| `dondron_bridge` | Micro-XRCE-DDS Agent config |
+| `dondron_perception` | YOLO/RKNN inference, `/detections` |
+| `dondron_guidance` | Visual servoing, trajectory setpoints |
+| `dondron_state_machine` | BehaviorTree.CPP v4 logic |
+| `dondron_diagnostics` | Health monitoring, rosbag triggers |
+
+Global nexus behavior is in Cursor User Rules (copied from `nexus/.cursor/rules/nexus-vault.mdc`).
