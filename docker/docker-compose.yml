@@ -1,0 +1,15 @@
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: dondron-ros2-jazzy:dev
+    container_name: dondron-dev
+    volumes:
+      - ../ros2_ws:/workspace/ros2_ws
+    working_dir: /workspace/ros2_ws
+    stdin_open: true
+    tty: true
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp

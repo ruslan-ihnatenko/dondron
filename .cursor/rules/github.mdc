@@ -1,0 +1,32 @@
+---
+description: Git commit, push, and GitHub PR workflow for dondron
+alwaysApply: false
+---
+
+# GitHub workflow (dondron)
+
+## Commits
+
+- Commit **only when the user asks** — never proactively.
+- Before committing: `git status`, `git diff`, `git log -1 --oneline` (match message style).
+- Message: 1–2 sentences, focus on **why**; use `fix` / `add` / `update` accurately.
+- Pass message via HEREDOC: `git commit -m "$(cat <<'EOF' ... EOF)"`.
+- Never skip hooks, amend unpushed commits, or force-push `main` unless explicitly requested.
+- Do not commit secrets (`.env`, keys, credentials).
+
+## Push
+
+- Push **only when the user asks**.
+- Use `git push -u origin HEAD` for new branches; otherwise `git push`.
+
+## Pull requests
+
+- Use **`gh`** for all GitHub tasks (issues, PRs, checks).
+- Before `gh pr create`: status, diff vs base, log, branch tracking.
+- Body via HEREDOC; return the PR URL to the user.
+
+## Repo
+
+- **Remote:** https://github.com/ruslan-ihnatenko/dondron
+- **Default branch:** `main`
+- Trackable work stays in nexus vault — not commit messages or inline TODOs.

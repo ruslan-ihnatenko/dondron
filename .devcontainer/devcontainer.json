@@ -1,0 +1,21 @@
+{
+  "name": "DonDron ROS 2 Jazzy",
+  "dockerComposeFile": "../docker/docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace/ros2_ws",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "smilerobotics.urdf",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "postCreateCommand": "source /opt/ros/jazzy/setup.bash && ros2 doctor --report || true",
+  "remoteUser": "root"
+}
