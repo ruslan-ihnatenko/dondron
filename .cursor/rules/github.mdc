@@ -5,14 +5,89 @@ alwaysApply: false
 
 # GitHub workflow (dondron)
 
-## Commits
+## Commit format
+
+Use **Conventional Commits** with a DonDron scope:
+
+```
+<type>(<scope>): <subject>
+
+<optional body — why, not a file list>
+```
+
+- **Subject:** imperative, lowercase, no trailing period, ≤72 chars
+- **Body:** 1–2 sentences when the why isn't obvious
+- Pass via HEREDOC (see below)
+
+### Types
+
+| Type | Use for |
+|------|---------|
+| `env` | Docker, Dev Container, CI, dev tooling, dependencies |
+| `feat` | New ROS nodes, packages, algorithms, launch behavior |
+| `sim` | Gazebo worlds, SIL/HIL assets, simulation launch files |
+| `bridge` | Micro-XRCE-DDS, PX4 ↔ ROS 2 integration |
+| `model` | URDF/SDF, meshes, `dondron_description` |
+| `docs` | `docs/`, README, run/build guides |
+| `fix` | Bug fixes in any area |
+| `chore` | `.cursor/rules`, `.gitignore`, repo scaffolding |
+
+### Scopes
+
+Pick the **smallest matching scope**. Package scopes mirror `ros2_ws/src/`:
+
+| Scope | Paths / packages |
+|-------|------------------|
+| `docker` | `docker/`, `.devcontainer/` |
+| `bringup` | `dondron_bringup` |
+| `perception` | `dondron_perception` |
+| `guidance` | `dondron_guidance` |
+| `state-machine` | `dondron_state_machine` |
+| `diagnostics` | `dondron_diagnostics` |
+| `worlds` | `simulation/worlds/` |
+| `repo` | README, rules, top-level layout (use with `chore` or `docs`) |
+
+Omit scope only for repo-wide `chore` (e.g. `chore: normalize path casing in readme`).
+
+### Examples
+
+```
+env(docker): add Jazzy Dev Container for macOS development
+
+Enables node development on MacBook without native ROS install.
+```
+
+```
+feat(perception): publish Detection2DArray on /detections
+```
+
+```
+sim(worlds): add outdoor SIL world for Gazebo Harmonic
+```
+
+```
+bridge: configure Micro-XRCE-DDS agent for Pixhawk UART
+```
+
+```
+fix(guidance): clamp lateral setpoint when target leaves FOV
+```
+
+## Commits (process)
 
 - Commit **only when the user asks** — never proactively.
-- Before committing: `git status`, `git diff`, `git log -1 --oneline` (match message style).
-- Message: 1–2 sentences, focus on **why**; use `fix` / `add` / `update` accurately.
-- Pass message via HEREDOC: `git commit -m "$(cat <<'EOF' ... EOF)"`.
+- Before committing: `git status`, `git diff`, `git log -3 --oneline` (match style).
 - Never skip hooks, amend unpushed commits, or force-push `main` unless explicitly requested.
 - Do not commit secrets (`.env`, keys, credentials).
+
+```bash
+git commit -m "$(cat <<'EOF'
+env(docker): short subject here.
+
+Optional body explaining why.
+EOF
+)"
+```
 
 ## Push
 
@@ -23,6 +98,7 @@ alwaysApply: false
 
 - Use **`gh`** for all GitHub tasks (issues, PRs, checks).
 - Before `gh pr create`: status, diff vs base, log, branch tracking.
+- PR title: same `<type>(<scope>): <subject>` format as commits.
 - Body via HEREDOC; return the PR URL to the user.
 
 ## Repo
