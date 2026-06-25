@@ -1,0 +1,13 @@
+# Micro-XRCE-DDS agent defaults for DonDron (see docs/sil-bridge.md).
+#
+# ROS_DOMAIN_ID must match on every machine in the stack (blueprint §4.2).
+
+agent:
+  executable: ~/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent
+  transport: udp4
+  port: 8888
+
+ros:
+  domain_id: 42  # DonDron fleet default (blueprint §4.2)
+  # PX4 SITL uXRCE publishes on DDS domain 0 by default — use
+  # ROS_DOMAIN_ID=0 when running ros2 topic list against gz_x500.
