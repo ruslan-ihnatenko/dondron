@@ -1,0 +1,41 @@
+---
+description: dondron_state_machine — BehaviorTree.CPP v4, public states through TRACK
+globs: "**/dondron_state_machine/**"
+alwaysApply: false
+---
+
+# State machine (`dondron_state_machine`)
+
+Library: **BehaviorTree.CPP v4** (Nav2-compatible patterns).
+
+## Public state graph (Line 1)
+
+```
+IDLE → ARM → TAKEOFF → SEARCH → ACQUIRE → TRACK
+```
+
+**TRACK** is the public terminal state. ENGAGE / intercept lives in private repo Line 2+.
+
+## DISENGAGE
+
+- **Not** BT-initiated — PX4 `COM_RC_OVERRIDE` handles RC stick override
+- BT monitors flight mode via bridged `/fmu/out/vehicle_status` (or equivalent)
+- On override: DISENGAGE → RTL → LAND subtree
+
+## BT sketch (public)
+
+```
+Root (ReactiveSequence)
+├── Condition: RC_Override_Not_Active?
+└── Sequence
+     ├── Action: Arm
+     ├── Action: Takeoff
+     ├── SubTree: SearchAndTrack
+     └── Action: RTL
+```
+
+## Public boundary
+
+No ENGAGE actions, no detection→setpoint mapping in BT nodes here.
+
+Vault: blueprint §4.4

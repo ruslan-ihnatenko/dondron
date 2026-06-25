@@ -1,0 +1,31 @@
+---
+description: dondron_description URDF/SDF and Gazebo worlds — FLU convention
+globs: "**/dondron_description/**,simulation/worlds/**"
+alwaysApply: false
+---
+
+# Robot model and simulation worlds
+
+## Coordinate convention
+
+**FLU** (Forward-Left-Up) for CAD export and URDF/SDF.
+
+## `dondron_description`
+
+- URDF for ROS (RViz, robot_state_publisher)
+- SDF for Gazebo Harmonic spawn
+- Separate visual mesh (detail) and collision mesh (simplified)
+- Inertia: kg·m² (convert from CAD g·mm²)
+
+## Gazebo Harmonic
+
+- Bridge via `ros-jazzy-ros-gz` — vendor packages under `/opt/ros/jazzy`
+- Worlds in `simulation/worlds/`
+- Sensors: IMU, GPS, RGB camera → `sensor_msgs/msg/Image` on `/camera/image_raw`
+
+## Physics notes (from blueprint)
+
+- Thrust: `MulticopterMotorModel` plugin
+- Target AUW ~1.4–1.5 kg for Mark4 7" + Orange Pi 5 stack
+
+Vault: blueprint §3 (Simulation & Digital Twin)

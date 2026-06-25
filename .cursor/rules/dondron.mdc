@@ -5,7 +5,7 @@ alwaysApply: true
 
 # DonDron (code repo)
 
-Implementation workspace for the DonDron autonomous UAV project.
+Implementation workspace for the DonDron autonomous UAV project (Line 1 — public stack).
 
 ## Read first (every session)
 
@@ -13,21 +13,35 @@ Implementation workspace for the DonDron autonomous UAV project.
 - Active tasks: `~/Projects/nexus/01_Projects/Robotics/DonDron/Tasks/`
 - Session handoff: `~/Projects/nexus/01_Projects/Nexus_Infrastructure/Docs/User Guide/Agent Session Checklist.md`
 - Architecture (vault): `01_Projects/Robotics/DonDron/Docs/hybrid-architecture-blueprint.md`
+- Code-repo dev state: `docs/dev_state.md`
+- Guardrails: `AGENTS.md`
 
 ## Stack conventions
 
-- **ROS 2:** Jazzy Jalisco — source `/opt/ros/jazzy/setup.bash`
-- **Build:** colcon in `ros2_ws/`
+- **ROS 2:** Jazzy Jalisco — source `/opt/ros/jazzy/setup.bash` before PX4 build or sim
+- **DDS domain:** `ROS_DOMAIN_ID=42` on all machines (avoid multi-machine conflicts)
+- **Build:** colcon in `ros2_ws/` (`--symlink-install` on Main PC overlay)
 - **PX4:** upstream clone at `~/PX4-Autopilot` — do not vendor into this repo
 - **Gazebo:** Harmonic (`gz sim`); ROS bridge via `ros-jazzy-ros-gz`
-- **Primary SIL machine:** Main PC (Ubuntu 24.04, RTX 4070 SUPER)
+- **SIL bridge:** see `docs/sil-bridge.md` — agent before PX4, source ROS first
+
+## Development machines
+
+| Machine | Role |
+|---------|------|
+| **Main PC** (Linux Mint 22, RTX 4070) | Primary SIL/HIL, GPU vision, native PX4 + Gazebo |
+| **MacBook** (Docker Dev Container) | ROS 2 package dev, launch files, BT logic — **not** full SIL |
+
+Mac rule: develop nodes in Dev Container; run integration/sim on Main PC. Never promise full SIL on Mac.
 
 ## Rules
 
 - Trackable work → nexus vault task notes — not inline TODO/FIXME comments
 - Architecture and planning stay in the vault — build/run docs go in this repo `docs/`
-- At session end: update vault task (`status`, checkboxes, notes with branch/commit)
+- At session end: update `docs/dev_state.md` + vault task (`status`, checkboxes, notes with branch/commit)
 - Do not duplicate large experiment logs into the vault
+- Guidance / intercept logic → private repo Line 2+ only — see `public-boundary.mdc`
+- Git commits: Conventional Commits per `.cursor/rules/github.mdc` — use skill `dondron-git-commit` when committing
 
 ## Package layout (`ros2_ws/src/`)
 
@@ -37,8 +51,10 @@ Implementation workspace for the DonDron autonomous UAV project.
 | `dondron_bringup` | Launch files, system params |
 | `dondron_bridge` | Micro-XRCE-DDS Agent config |
 | `dondron_perception` | YOLO/RKNN inference, `/detections` |
-| `dondron_guidance` | Visual servoing, trajectory setpoints |
-| `dondron_state_machine` | BehaviorTree.CPP v4 logic |
+| `dondron_flight_api` | Generic Offboard setpoint interface — **no** `/detections` input |
+| `dondron_state_machine` | BehaviorTree.CPP v4 — public states through TRACK |
 | `dondron_diagnostics` | Health monitoring, rosbag triggers |
+
+Guidance bridge and ENGAGE BT live in `dondron-guidance-private` (Line 2+) — not in this repo.
 
 Global nexus behavior is in Cursor User Rules (copied from `nexus/.cursor/rules/nexus-vault.mdc`).

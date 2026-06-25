@@ -1,0 +1,40 @@
+---
+description: ROS 2 ament/colcon conventions for dondron_* packages in ros2_ws/src
+globs: ros2_ws/src/**
+alwaysApply: false
+---
+
+# ROS 2 package conventions
+
+## Naming and layout
+
+- Package prefix: `dondron_*` (snake_case)
+- Standard layout: `package.xml`, `CMakeLists.txt`, `include/<pkg>/`, `src/`, optional `launch/`, `config/`
+- Use `ament_cmake` unless Python-only node justifies `ament_python`
+
+## Build
+
+```bash
+cd ros2_ws
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install --packages-select <pkg_name>
+source install/setup.bash
+```
+
+Main PC overlay workspace (Line 2+): `~/dondron_ws/` — not used in Line 1 public-only work.
+
+## Dependencies
+
+- Declare all deps in `package.xml` **and** `CMakeLists.txt` (`find_package`, `ament_target_dependencies`)
+- PX4 messages: `px4_msgs` (clone to workspace or depend via vcstool — see `docs/sil-bridge.md`)
+- Vision: `vision_msgs`, `sensor_msgs`, `cv_bridge`
+- BT: `behaviortree_cpp` v4 for `dondron_state_machine`
+
+## New package checklist
+
+1. `ros2 pkg create --build-type ament_cmake <name>`
+2. Add to `dondron_bringup` launch when node is runnable
+3. Update `docs/dev_state.md` package progress
+4. Smoke: `colcon build` + `ros2 run` or launch
+
+Vault blueprint §4.1 for full package list.

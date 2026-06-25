@@ -1,0 +1,38 @@
+---
+description: dondron_perception — /detections topic contract and camera pipeline
+globs: "**/dondron_perception/**"
+alwaysApply: false
+---
+
+# Perception (`dondron_perception`)
+
+## Topic contract (frozen at Line 1 gate)
+
+| Topic | Type | Direction |
+|-------|------|-----------|
+| `/camera/image_raw` | `sensor_msgs/msg/Image` | subscribe |
+| `/detections` | `vision_msgs/msg/Detection2DArray` | publish |
+
+Camera-agnostic: swapping IMX219 for OAK-D / RealSense only changes the camera driver node.
+
+## Monocular range (Phase 1)
+
+```
+range_m = (focal_length_px × real_target_width_m) / bbox_width_px
+```
+
+Target must be known physical size. Document focal length and target class in package README or params.
+
+## Inference path
+
+1. `cv_bridge` → OpenCV
+2. RKNN on Orange Pi NPU (prod); stub or CPU/YOLO on dev/SIL
+3. Publish `Detection2DArray` with bbox + class id + confidence
+
+SIL without RKNN: stub publisher or Gazebo ground-truth bridge is acceptable for integration tests.
+
+## Public boundary
+
+Perception publishes `/detections` only. **No** setpoint or flight commands from this package.
+
+Vault: blueprint §4.3

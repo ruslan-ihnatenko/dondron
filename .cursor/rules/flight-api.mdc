@@ -1,0 +1,30 @@
+---
+description: dondron_flight_api — generic setpoint interface, no perception input
+globs: "**/dondron_flight_api/**"
+alwaysApply: false
+---
+
+# Flight API (`dondron_flight_api`)
+
+Generic interface between companion computer and PX4. **Detection-agnostic.**
+
+## Topics
+
+| Topic | Type | Direction |
+|-------|------|-----------|
+| `/flight_api/cmd_setpoint` | project-specific or `geometry_msgs` twist | subscribe |
+| PX4 offboard | `px4_msgs/msg/TrajectorySetpoint` via uXRCE-DDS | publish |
+
+## Must not
+
+- Subscribe to `/detections`
+- Contain visual servo or intercept logic
+- Map bbox errors to setpoints (Module C — private repo only)
+
+## Responsibilities
+
+- Frame transforms (body ↔ NED)
+- Offboard mode management and setpoint validation
+- Optional test harness: manual joystick or waypoint publisher for bench tests
+
+Vault: blueprint §4.5, legal doc Module B

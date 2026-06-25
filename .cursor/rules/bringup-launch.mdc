@@ -1,0 +1,28 @@
+---
+description: dondron_bringup launch files and Line 1 SIL launch modes
+globs: "**/dondron_bringup/**,**/*.launch.py"
+alwaysApply: false
+---
+
+# Bringup and launch files
+
+## Line 1 launch modes (public repo only)
+
+| Launch | Purpose |
+|--------|---------|
+| `sil_manual.launch.py` | Manual / bench — no autonomy |
+| `sil_public.launch.py` | Recognition stack — perception + public BT through TRACK |
+
+`sil_full.launch.py` (public + private) belongs in **private repo** Line 2+ — not here.
+
+## Composition
+
+- Include `dondron_bridge` (uXRCE agent) when bridging to PX4
+- Set `ROS_DOMAIN_ID=42` via launch or env
+- Document required external processes: Micro-XRCE agent, PX4 SITL (see `docs/sil-bridge.md`)
+
+## Mode menu (future)
+
+Public stub checks for private package presence; zero guidance math in public repo.
+
+Vault: `project-branches-and-repos.md` — Unified mode menu

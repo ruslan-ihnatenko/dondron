@@ -5,9 +5,11 @@ alwaysApply: false
 
 # GitHub workflow (dondron)
 
+Use skill **dondron-git-commit** when the user asks to commit, push, or open a PR.
+
 ## Commit format
 
-Use **Conventional Commits** with a DonDron scope:
+**Conventional Commits** with a DonDron scope:
 
 ```
 <type>(<scope>): <subject>
@@ -16,8 +18,8 @@ Use **Conventional Commits** with a DonDron scope:
 ```
 
 - **Subject:** imperative, lowercase, no trailing period, ≤72 chars
-- **Body:** 1–2 sentences when the why isn't obvious
-- Pass via HEREDOC (see below)
+- **Body:** 1–2 sentences when the why isn't obvious (never a bullet list of files)
+- Pass message via HEREDOC (see skill)
 
 ### Types
 
@@ -30,7 +32,7 @@ Use **Conventional Commits** with a DonDron scope:
 | `model` | URDF/SDF, meshes, `dondron_description` |
 | `docs` | `docs/`, README, run/build guides |
 | `fix` | Bug fixes in any area |
-| `chore` | `.cursor/rules`, `.gitignore`, repo scaffolding |
+| `chore` | `.cursor/rules`, `.cursor/skills`, `.gitignore`, repo scaffolding |
 
 ### Scopes
 
@@ -41,13 +43,45 @@ Pick the **smallest matching scope**. Package scopes mirror `ros2_ws/src/`:
 | `docker` | `docker/`, `.devcontainer/` |
 | `bringup` | `dondron_bringup` |
 | `perception` | `dondron_perception` |
-| `guidance` | `dondron_guidance` |
+| `flight-api` | `dondron_flight_api` |
+| `bridge` | `dondron_bridge` |
+| `description` | `dondron_description` |
 | `state-machine` | `dondron_state_machine` |
 | `diagnostics` | `dondron_diagnostics` |
 | `worlds` | `simulation/worlds/` |
-| `repo` | README, rules, top-level layout (use with `chore` or `docs`) |
+| `repo` | README, `AGENTS.md`, top-level layout (use with `chore` or `docs`) |
+| `cursor` | `.cursor/rules/`, `.cursor/skills/` (use with `chore`) |
 
 Omit scope only for repo-wide `chore` (e.g. `chore: normalize path casing in readme`).
+
+### Change-type routing (path → type + scope)
+
+| Changed paths | Type | Scope |
+|---------------|------|-------|
+| `docker/**`, `.devcontainer/**` | `env` | `docker` |
+| `simulation/worlds/**` | `sim` | `worlds` |
+| `ros2_ws/src/dondron_description/**` | `model` or `feat`/`fix` | `description` |
+| `ros2_ws/src/dondron_bridge/**` | `bridge` or `feat`/`fix` | `bridge` |
+| `ros2_ws/src/dondron_perception/**` | `feat` or `fix` | `perception` |
+| `ros2_ws/src/dondron_flight_api/**` | `feat` or `fix` | `flight-api` |
+| `ros2_ws/src/dondron_state_machine/**` | `feat` or `fix` | `state-machine` |
+| `ros2_ws/src/dondron_bringup/**` | `feat` or `fix` | `bringup` |
+| `ros2_ws/src/dondron_diagnostics/**` | `feat` or `fix` | `diagnostics` |
+| `docs/**` (only) | `docs` | `repo` |
+| `.cursor/**` (only) | `chore` | `cursor` |
+| `AGENTS.md`, `README.md` | `docs` or `chore` | `repo` |
+
+Use `feat` for new capability, `fix` for corrections, `model` when change is URDF/SDF/mesh-only with no node logic.
+
+### One commit vs split
+
+| Situation | Action |
+|-----------|--------|
+| Single package, single concern | One commit |
+| Mixed types (e.g. `feat(perception)` + `docs`) | **Split** — docs commit after feat |
+| Mixed scopes (e.g. `perception` + `bringup`) | **Split** unless one atomic launch integration |
+| Agent toolkit + feature work | **Split** — `chore(cursor)` then `feat(...)` |
+| Generated/colcon artifacts | **Never commit** — `build/`, `install/`, `log/` |
 
 ### Examples
 
@@ -70,15 +104,20 @@ bridge: configure Micro-XRCE-DDS agent for Pixhawk UART
 ```
 
 ```
-fix(guidance): clamp lateral setpoint when target leaves FOV
+fix(flight-api): validate setpoint frame before offboard publish
+```
+
+```
+chore(cursor): add git commit skill and change-type routing
 ```
 
 ## Commits (process)
 
 - Commit **only when the user asks** — never proactively.
 - Before committing: `git status`, `git diff`, `git log -3 --oneline` (match style).
+- Stage only files belonging to the current commit when splitting.
 - Never skip hooks, amend unpushed commits, or force-push `main` unless explicitly requested.
-- Do not commit secrets (`.env`, keys, credentials).
+- Do not commit secrets (`.env`, keys, credentials), rosbags, or `.rknn` models.
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -98,7 +137,7 @@ EOF
 
 - Use **`gh`** for all GitHub tasks (issues, PRs, checks).
 - Before `gh pr create`: status, diff vs base, log, branch tracking.
-- PR title: same `<type>(<scope>): <subject>` format as commits.
+- PR title: same `<type>(<scope>): <subject>` format as commits (use primary change if multiple commits).
 - Body via HEREDOC; return the PR URL to the user.
 
 ## Repo
@@ -106,3 +145,4 @@ EOF
 - **Remote:** https://github.com/ruslan-ihnatenko/dondron
 - **Default branch:** `main`
 - Trackable work stays in nexus vault — not commit messages or inline TODOs.
+- Public language in commits: see `AGENTS.md` (avoid intercept/engage/terminal guidance).

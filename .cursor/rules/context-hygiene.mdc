@@ -1,0 +1,29 @@
+---
+description: Token hygiene — what not to attach or paste into agent context
+alwaysApply: true
+---
+
+# Context hygiene
+
+Keep agent context focused. Prefer links and summaries over bulk attachments.
+
+## Do not @-attach
+
+- `ros2_ws/build/`, `install/`, `log/` — colcon artifacts
+- Full rosbags (`.db3`, `.mcap`) — paste last 20–30 relevant log lines max
+- Mesh binaries, training datasets, INT8 calibration image sets
+- `~/PX4-Autopilot/` wholesale — cite specific files or config keys if needed
+- Full vault blueprint or legal docs — link + one-paragraph summary suffices
+
+## Prefer attaching
+
+- `docs/dev_state.md`, `AGENTS.md`
+- Specific package source being edited (`ros2_ws/src/dondron_*/`)
+- `docs/sil-bridge.md`, `docs/docker.md` when running SIL or container work
+- Vault task note for active work (absolute path or paste frontmatter + goal)
+
+## Vault vs code
+
+- Architecture decisions → vault (link, do not duplicate)
+- Build/run steps → this repo `docs/`
+- Session results → `docs/dev_state.md` + vault task summary

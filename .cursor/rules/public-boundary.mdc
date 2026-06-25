@@ -1,0 +1,30 @@
+---
+description: Public repo legal boundary — no guidance/intercept logic in dondron
+alwaysApply: true
+---
+
+# Public repo boundary (Line 1)
+
+This is the **public** DonDron repo. Export-control and project policy require strict separation.
+
+## Allowed in this repo
+
+- **Module A:** perception — `dondron_perception`, `/detections`
+- **Module B:** flight API — `dondron_flight_api`, `/flight_api/cmd_setpoint` (generic, no detection input)
+- Bridge, bringup, description, diagnostics, state machine through **TRACK** only
+
+## Never in this repo
+
+- **Module C:** guidance bridge — detection → setpoint mapping
+- Visual servo / intercept controller
+- ENGAGE behavior tree subtree
+- Commented-out guidance templates or “TODO: implement intercept”
+- Launch files importing `dondron_guidance_private`
+
+## Hard constraints
+
+- `dondron_flight_api` must **not** subscribe to `/detections`
+- No turnkey detection→flight pipeline in public code
+- Trackable follow-ups → nexus vault tasks, not inline TODOs in source
+
+Vault detail: `~/Projects/nexus/01_Projects/Robotics/DonDron/Docs/legal-compliance-eu-export-control.md`
