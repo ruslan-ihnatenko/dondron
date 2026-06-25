@@ -6,13 +6,13 @@ Code-repo session state (like UpAndDown `experiment_state_*.md`). Update at sess
 
 | Date | Machine | PX4 target | Agent connected | Notes |
 |------|---------|------------|-----------------|-------|
-| 2026-06-25 | Main PC | `gz_x500` | — | SIL stack ready per vault CONTEXT; packages not yet scaffolded |
+| 2026-06-25 | Main PC | `gz_x500` | yes | Agent UDP 8888 → session established; `/fmu/out/*` on `ROS_DOMAIN_ID=0` (PX4 SITL default); `sensor_combined` echo OK; workspace overlay sourced |
 
 ## Package progress
 
-- [ ] `dondron_description` — URDF/SDF, meshes
+- [x] `dondron_description` — minimal URDF/xacro; `camera_optical_frame` documented
 - [ ] `dondron_bringup` — launch files, system params
-- [ ] `dondron_bridge` — Micro-XRCE-DDS agent config
+- [x] `dondron_bridge` — agent launch (`agent.launch.py`), `ROS_DOMAIN_ID=42` default
 - [ ] `dondron_perception` — `/detections` publisher
 - [ ] `dondron_flight_api` — generic setpoint interface
 - [ ] `dondron_state_machine` — BT through TRACK
@@ -20,10 +20,16 @@ Code-repo session state (like UpAndDown `experiment_state_*.md`). Update at sess
 
 ## Pending work
 
-- [ ] Scaffold first ROS 2 package (`dondron_description` or `dondron_perception`)
-- [ ] Optional: `docker compose build` smoke test on Main PC
+Line 1 milestones — vault tasks in `01_Projects/Robotics/DonDron/Tasks/`:
+
+- [x] **M0** — Vault task `20260625-l1found`: scaffold `dondron_description` + `dondron_bridge`; colcon smoke build
+- [ ] **M1** — Task `20260625-l1perc`: perception stub + topic contract freeze checklist complete
+- [ ] **M2** — Tasks `20260625-l1flight`, `20260625-l1bt`, `20260625-l1bring`: TRACK BT in `sil_public.launch.py`
+- [ ] **M3** — YOLO + sim target in Gazebo (perception task continuation)
+- [ ] **M4** — Task `20260625-l1gate`: real-life recognition + Line 1 go/no-go metrics
+- [ ] **Later** — Task `20260625-l1diag`: diagnostics + rosbag triggers
 
 ## Known issues
 
-- `ros2_ws/src/` is empty (`.gitkeep` only) — no colcon build yet
+- PX4 SITL uXRCE uses DDS domain **0**; DonDron fleet default is **42** — match domain when bridging SIL vs hardware
 - Mac Dev Container: node dev only; full SIL on Main PC
