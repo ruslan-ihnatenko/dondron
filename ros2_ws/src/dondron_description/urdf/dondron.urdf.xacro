@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="dondron">
+
+  <!--
+    Minimal Line 1 robot description (SIL stub).
+    FLU: X forward, Y left, Z up.
+
+    Perception contract:
+      /camera/image_raw  ->  header.frame_id = "camera_optical_frame"
+    See urdf/README.md in this package.
+  -->
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.35 0.35 0.08"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.35 0.35 0.08"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="1.4"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.02"/>
+    </inertial>
+  </link>
+
+  <link name="camera_link"/>
+
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.15 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- REP-103 optical frame: Z forward, X right, Y down -->
+  <link name="camera_optical_frame"/>
+
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+
+</robot>
