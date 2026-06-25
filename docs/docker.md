@@ -10,10 +10,17 @@ Reproducible ROS 2 Jazzy workspace for **macOS** (Docker Desktop) and **Ubuntu**
 2. Start Docker Desktop before building or opening the Dev Container
 3. Optional: XQuartz if you need GUI tools (RViz) from the container — expect sluggish performance on Air
 
-### Main PC (Ubuntu 24.04)
+### Main PC (Linux Mint 22)
 
-- Docker Engine + Compose plugin (already installed per vault CONTEXT)
-- For GPU vision later: [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+Install: [main-pc-setup.md](main-pc-setup.md) — Docker Engine, Compose plugin, NVIDIA Container Toolkit.
+
+Quick use after install:
+
+```bash
+cd ~/Projects/dondron
+docker compose -f docker/docker-compose.yml build
+docker compose -f docker/docker-compose.yml run --rm dev
+```
 
 ## Quick start
 
@@ -93,4 +100,5 @@ colcon build --symlink-install
 ## Related
 
 - Vault task: `01_Projects/Robotics/DonDron/Tasks/setup-docker-dev-environment.md`
-- Main PC SIL: `make px4_sitl gz_x500` in `~/PX4-Autopilot` (native Ubuntu only)
+- Main PC install: [main-pc-setup.md](main-pc-setup.md)
+- Main PC SIL: `make px4_sitl gz_x500` in `~/PX4-Autopilot` (native; source ROS 2 first)
