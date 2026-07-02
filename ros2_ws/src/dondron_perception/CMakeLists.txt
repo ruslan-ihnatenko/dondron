@@ -29,9 +29,12 @@ install(DIRECTORY launch
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(launch_testing_ament_cmake REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  add_launch_test(test/test_perception_launch.py)
 endif()
 
 ament_package()
