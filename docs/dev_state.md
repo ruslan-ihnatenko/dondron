@@ -46,3 +46,11 @@ Line 1 milestones — vault tasks in `01_Projects/Robotics/DonDron/Tasks/`:
 - **M2:** `1abc10f` on `main` — `dondron_flight_api`, `dondron_state_machine`, `dondron_bringup` (`sil_public`); Main PC SIL TRACK verified 2026-07-02
 - **M1:** `b11c4e7` on `main` — `dondron_perception` stub, `/detections` contract README
 - **M0:** `88db8a7` on `main` — `dondron_description`, `dondron_bridge`, dev state
+
+## CI / automated tests
+
+- GitHub Actions: `.github/workflows/ci.yml` — colcon build/test + `scripts/check-public-boundary.sh`
+- Local: skill `dondron-colcon-test`
+- gtest: `dondron_flight_api` (`test_frame_transform`)
+- launch_testing: `dondron_perception` (`test_perception_launch`)
+- Agent evals: `.cursor/evals/` (manual)

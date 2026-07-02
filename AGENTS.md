@@ -59,3 +59,21 @@ Private repo and vault may use precise engineering terms internally.
 **Git:** commit only when asked — follow `.cursor/rules/github.mdc` and skill `dondron-git-commit`.
 
 Full checklist: `~/Projects/nexus/01_Projects/Nexus_Infrastructure/Docs/User Guide/Agent Session Checklist.md`
+
+## Testing
+
+Layered test pyramid (see skill `dondron-colcon-test`):
+
+| Tier | What | When |
+|------|------|------|
+| 1 | `scripts/check-public-boundary.sh` + `colcon build` + lint | Every code change; CI on push |
+| 2 | gtest (`dondron_flight_api/test/`) | Frame transform / pure logic |
+| 3 | `launch_testing` (`dondron_perception/test/`) | Node starts, topic publishes |
+| 4 | SIL smoke + M2 gate | Main PC only — skill `dondron-sil-smoke-test` |
+| 5 | Agent evals | `.cursor/evals/` — manual policy regression |
+
+CI: `.github/workflows/ci.yml` (Ubuntu + Jazzy Docker; clones `px4_msgs`; no PX4 sim).
+
+Before commit: run boundary script + `colcon test` on touched packages.
+
+Learning cheatsheets (vault): `~/Projects/nexus/01_Projects/Robotics/DonDron/Docs/cheatsheets/`
