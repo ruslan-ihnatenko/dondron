@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<root BTCPP_format="4">
+  <BehaviorTree ID="MissionRoot">
+    <ReactiveSequence name="root">
+      <Condition ID="RC_Override_Not_Active"/>
+      <Sequence name="autonomous_mission">
+        <Action ID="Arm"/>
+        <Action ID="EnableOffboard"/>
+        <Action ID="WaitOffboard" timeout_s="20.0"/>
+        <Action ID="ClimbToAltitude" altitude_m="3.0" climb_rate_mps="1.0"/>
+        <Action ID="ExecuteSearchPattern" duration_s="5.0" forward_speed_mps="0.5" yaw_rate_radps="0.3"/>
+        <ReactiveSequence name="acquire_loop">
+          <Condition ID="TargetAcquired" target_class_id="0" min_score="0.5"/>
+          <Action ID="TrackTarget" target_class_id="0" min_score="0.5" stable_ticks="3" lost_ticks="10"/>
+        </ReactiveSequence>
+      </Sequence>
+    </ReactiveSequence>
+  </BehaviorTree>
+</root>
