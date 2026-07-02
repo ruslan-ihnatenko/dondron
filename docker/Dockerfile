@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-rosdep \
     python3-vcstool \
     ros-jazzy-ros-gz \
+    ros-jazzy-behaviortree-cpp \
     && rm -rf /var/lib/apt/lists/*
 
 RUN rosdep init 2>/dev/null || true \
