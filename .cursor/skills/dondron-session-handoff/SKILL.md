@@ -26,7 +26,7 @@ Path: `~/Projects/nexus/01_Projects/Robotics/DonDron/Tasks/<slug>.md`
 |-------|--------|
 | `status` | `in_progress` while working → `done` / `blocked` when finished |
 | Checklist | Check off completed steps |
-| `## Notes` | Branch name, commit hash (if committed), blockers, next step |
+| `## Notes` | Branch name, commit hash (if committed), blockers, next step, optional **learning note** (topic studied this session) |
 
 Use full task template from `~/Projects/nexus/99_Templates/Task.md` — never omit frontmatter fields.
 

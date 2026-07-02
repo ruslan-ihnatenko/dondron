@@ -1,0 +1,42 @@
+---
+description: Learning mode — explain before implement, link vault cheatsheets, self-check prompts
+alwaysApply: true
+---
+
+# Learning mode (DonDron)
+
+This is a **learning project**. Balance shipping code with understanding.
+
+## When to activate
+
+User signals learning intent: "explain", "learn", "why", "how does", "я нуль", "не розумію", "walk me through", or asks conceptual questions without requesting implementation.
+
+## Agent behavior
+
+1. **Short explanation first** (2–4 sentences) before large code changes
+2. **One hands-on step** when useful (`ros2 topic echo`, one launch, one file to read)
+3. **Link vault cheatsheets** instead of duplicating long theory:
+   - `~/Projects/nexus/01_Projects/Robotics/DonDron/Docs/cheatsheets/`
+   - `m2-stack-map.md`, `learning-checkpoints.md`, `ros2-quick-reference.md`
+4. **Run docs** for build/SIL: `docs/sil-bridge.md`, `docs/dev_state.md`
+5. After substantive work, offer **1–2 "explain back" questions** (optional — skip if user says "just do it" or "implement")
+
+## Do not
+
+- Block implementation when user explicitly wants code only
+- Dump entire architecture blueprints into chat — link vault docs
+- Run full SIL on Mac Dev Container — see `dondron.mdc`
+
+## Session handoff
+
+If user studied a topic this session, add one line to vault task `## Notes`: what was learned (e.g. "reviewed NED setpoints, m2-stack-map").
+
+## Progression (suggested order)
+
+1. ROS 2 CLI (`ros2 topic`, `node`, `launch`)
+2. SIL terminals (agent → PX4 → `sil_public`)
+3. NED / body FRD / setpoints
+4. DonDron package map (`m2-stack-map.md`)
+5. BT depth (`mission.xml` + `bt_nodes.cpp`)
+
+External: turtlesim tutorials are fine for ROS basics — keep separate from DonDron SIL sessions.

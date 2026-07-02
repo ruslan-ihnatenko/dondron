@@ -8,34 +8,41 @@ alwaysApply: false
 
 Library: **BehaviorTree.CPP v4** (Nav2-compatible patterns).
 
-## Public state graph (Line 1)
+## Public mission flow (M2 — `behavior_trees/mission.xml`)
 
 ```
-IDLE → ARM → TAKEOFF → SEARCH → ACQUIRE → TRACK
+Arm → EnableOffboard → WaitOffboard → ClimbToAltitude → ExecuteSearchPattern
+  → TargetAcquired + TrackTarget
 ```
 
-**TRACK** is the public terminal state. ENGAGE / intercept lives in private repo Line 2+.
+**TRACK** is the public terminal state (visual lock in BT only). ENGAGE / closed-loop flight lives in private repo Line 2+.
 
 ## DISENGAGE
 
 - **Not** BT-initiated — PX4 `COM_RC_OVERRIDE` handles RC stick override
-- BT monitors flight mode via bridged `/fmu/out/vehicle_status` (or equivalent)
-- On override: DISENGAGE → RTL → LAND subtree
+- BT monitors flight mode via bridged `/fmu/out/vehicle_status_v4` (param `vehicle_status_topic`)
+- M2 `mission.xml`: flat sequence — no auto-RTL subtree on failure; node halts on FAILURE
 
-## BT sketch (public)
+## BT structure (M2)
 
 ```
 Root (ReactiveSequence)
-├── Condition: RC_Override_Not_Active?
-└── Sequence
+├── Condition: RC_Override_Not_Active
+└── Sequence (autonomous_mission)
      ├── Action: Arm
-     ├── Action: Takeoff
-     ├── SubTree: SearchAndTrack
-     └── Action: RTL
+     ├── Action: EnableOffboard
+     ├── Action: WaitOffboard
+     ├── Action: ClimbToAltitude
+     ├── Action: ExecuteSearchPattern
+     └── ReactiveSequence (acquire_loop)
+          ├── Condition: TargetAcquired
+          └── Action: TrackTarget
 ```
 
 ## Public boundary
 
-No ENGAGE actions, no detection→setpoint mapping in BT nodes here.
+- `TargetAcquired` / `TrackTarget` read `/detections` only — no bbox→setpoint mapping
+- Search/climb publish generic setpoints via `/flight_api/cmd_setpoint`
+- No ENGAGE actions in `mission.xml`
 
 Vault: blueprint §4.4
