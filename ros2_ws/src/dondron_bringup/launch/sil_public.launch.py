@@ -1,4 +1,5 @@
-"""Public Line 1 SIL stack — perception + flight_api + state_machine (through TRACK).
+"""
+Public Line 1 SIL stack — perception + flight_api + state_machine (through TRACK).
 
 Does NOT include dondron_guidance_private or sil_full.
 
@@ -12,11 +13,11 @@ M1 perception stub works without a live camera (timer-only synthetic /detections
 
 import os
 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
-from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():

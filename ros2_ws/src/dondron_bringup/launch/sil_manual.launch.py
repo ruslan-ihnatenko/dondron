@@ -1,4 +1,5 @@
-"""Manual SIL launch — Micro-XRCE agent only (no autonomy stack).
+"""
+Manual SIL launch — Micro-XRCE agent only (no autonomy stack).
 
 Prerequisites (external, see docs/sil-bridge.md):
   1. Micro-XRCE-DDS Agent (this launch can start it)
@@ -9,11 +10,11 @@ Use ros_domain_id:=0 when ROS nodes must share DDS with PX4 SITL on the same mac
 
 import os
 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
-from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():

@@ -335,7 +335,8 @@ public:
     if (!in_track_) {
       if (ctx->detections_stable(class_id_, min_score_, stable_ticks_)) {
         in_track_ = true;
-        RCLCPP_INFO(ctx->node->get_logger(), "TRACK: visual lock acquired (class %s)", class_id_.c_str());
+        RCLCPP_INFO(ctx->node->get_logger(), "TRACK: visual lock acquired (class %s)",
+            class_id_.c_str());
       }
       return BT::NodeStatus::RUNNING;
     }

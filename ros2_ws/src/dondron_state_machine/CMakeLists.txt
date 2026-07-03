@@ -16,7 +16,7 @@ find_package(ament_index_cpp REQUIRED)
 find_package(behaviortree_cpp QUIET)
 if(NOT behaviortree_cpp_FOUND)
   include(FetchContent)
-  FetchContent_Declare(
+  fetchcontent_declare(
     behaviortree_cpp
     GIT_REPOSITORY https://github.com/BehaviorTree/BehaviorTree.CPP.git
     GIT_TAG 4.6.2
@@ -24,7 +24,7 @@ if(NOT behaviortree_cpp_FOUND)
   set(BTCPP_SHARED_LIBS ON CACHE BOOL "" FORCE)
   set(BTCPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
   set(BTCPP_GROOT_INTERFACE OFF CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(behaviortree_cpp)
+  fetchcontent_makeavailable(behaviortree_cpp)
   set(BEHAVIORTREE_CPP_TARGET BT::behaviortree_cpp)
 else()
   set(BEHAVIORTREE_CPP_TARGET behaviortree_cpp::behaviortree_cpp)
