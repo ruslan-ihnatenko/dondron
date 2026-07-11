@@ -172,8 +172,12 @@ source install/setup.bash
 # M1 stub (no camera required)
 ros2 run dondron_perception perception_node
 
+# M3 inference contract (requires image + camera_info publishers)
+ros2 run dondron_perception perception_node --ros-args -p use_stub:=false
+
 # Or via launch
 ros2 launch dondron_perception perception.launch.py
+ros2 launch dondron_perception perception.launch.py use_stub:=false
 ```
 
 ```bash
@@ -185,10 +189,17 @@ ros2 topic echo /detections --once
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `use_stub` | `true` | M1 timer stub (`true`) or M3 image-callback inference (`false`) |
 | `image_topic` | `/camera/image_raw` | Image subscription topic |
+| `camera_info_topic` | `/camera/camera_info` | CameraInfo for monocular range (M3+) |
 | `detections_topic` | `/detections` | Detection publisher topic |
 | `frame_id` | `camera_optical_frame` | Output `header.frame_id` |
-| `publish_rate_hz` | `2.0` | Stub publish rate |
+| `publish_rate_hz` | `2.0` | Stub publish rate (`use_stub:=true` only) |
+| `score_threshold` | `0.5` | Minimum detection score (`use_stub:=false`) |
+| `target_width_m` | `0.30` | Known physical width of class-0 target |
+| `target_class_id` | `"0"` | Inference detection class id |
+| `brightness_threshold` | `200` | CPU blob placeholder threshold (Mac/CI; YOLO on Main PC) |
+| `default_focal_length_px` | `554.25` | Fallback fx when CameraInfo not yet received |
 | `stub_class_id` | `"0"` | Synthetic detection class |
 | `stub_score` | `0.95` | Synthetic confidence |
 | `stub_range_m` | `10.0` | Synthetic range in `pose.position.z` |
