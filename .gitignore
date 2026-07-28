@@ -22,3 +22,9 @@ venv/
 # ROS bags and logs
 *.bag
 *.db3
+
+# ML model weights (large binary assets — see AGENTS.md) — YOLO auto-downloads
+# these to cwd on first run, never commit
+*.pt
+*.rknn
+*.onnx
