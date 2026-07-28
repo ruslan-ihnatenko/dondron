@@ -41,6 +41,7 @@ install(DIRECTORY launch
 install(PROGRAMS
   test/synthetic_camera_publisher.py
   scripts/yolo_inference_node.py
+  scripts/detection_visualizer.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
