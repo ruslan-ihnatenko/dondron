@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="orientation_cube_medium">
+    <static>true</static>
+    <link name="link">
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.6 0.6 0.6</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.6 0.6 0.6</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.1 0.7 0.15 1</ambient>
+          <diffuse>0.1 0.7 0.15 1</diffuse>
+          <specular>0.3 0.3 0.3 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

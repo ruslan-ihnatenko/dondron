@@ -38,12 +38,39 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'image_topic',
             default_value=gazebo_camera_topic,
-            description='Gazebo camera topic remapped to /camera/image_raw',
+            description=(
+                'Camera image source. Default assumes plain x500 with no separate ROS '
+                'bridge. If a camera_bridge.launch.py (x500_mono_cam) is already running, '
+                'override to /camera/image_raw instead.'
+            ),
+        ),
+        DeclareLaunchArgument(
+            'camera_info_topic',
+            default_value='/camera/camera_info',
+            description='CameraInfo for monocular range (use_yolo:=true / use_stub:=false).',
+        ),
+        DeclareLaunchArgument(
+            'use_stub',
+            default_value='true',
+            description='Forwarded to perception.launch.py — false for real inference.',
+        ),
+        DeclareLaunchArgument(
+            'use_yolo',
+            default_value='false',
+            description='Forwarded to perception.launch.py — true for YOLOv8n GPU inference.',
         ),
         DeclareLaunchArgument(
             'vehicle_status_topic',
             default_value='/fmu/out/vehicle_status_v4',
             description='PX4 bridged vehicle status (grep vehicle_status in ros2 topic list)',
+        ),
+        DeclareLaunchArgument(
+            'bt_xml_path',
+            default_value='',
+            description=(
+                'Forwarded to state_machine.launch.py — override BT XML path '
+                '(default: package behavior_trees/mission.xml)'
+            ),
         ),
         SetEnvironmentVariable('ROS_DOMAIN_ID', LaunchConfiguration('ros_domain_id')),
         IncludeLaunchDescription(
@@ -52,6 +79,9 @@ def generate_launch_description():
             ),
             launch_arguments={
                 'image_topic': LaunchConfiguration('image_topic'),
+                'camera_info_topic': LaunchConfiguration('camera_info_topic'),
+                'use_stub': LaunchConfiguration('use_stub'),
+                'use_yolo': LaunchConfiguration('use_yolo'),
             }.items(),
         ),
         IncludeLaunchDescription(
@@ -68,6 +98,7 @@ def generate_launch_description():
             ),
             launch_arguments={
                 'vehicle_status_topic': LaunchConfiguration('vehicle_status_topic'),
+                'bt_xml_path': LaunchConfiguration('bt_xml_path'),
             }.items(),
         ),
     ])
