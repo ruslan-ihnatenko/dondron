@@ -104,7 +104,7 @@ Swapping IMX219 → OAK-D / RealSense changes only the driver; perception topic 
 | Property | Value |
 |----------|-------|
 | Resolution | 640 × 480 |
-| Encoding | `rgb8` (inference path uses `cv_bridge` in M3+) |
+| Encoding | `rgb8` or `bgr8` from Gazebo bridge (YOLO path converts via numpy — no `cv_bridge`) |
 | `header.frame_id` | `camera_optical_frame` |
 
 ### `/camera/camera_info` pairing
@@ -121,43 +121,87 @@ cy = 240.0
 
 Distortion coefficients zero until camera calibration (M4 gate).
 
-## Gazebo SIL remap
+## Gazebo SIL (M3)
 
-PX4 `gz_x500` ships a forward camera on the airframe model. The raw Gazebo topic name includes the world and model instance; **remap in launch** to the frozen `/camera/image_raw` contract.
+### Camera model
 
-Typical Gazebo Harmonic topic (verify with `gz topic -l` while sim is running):
+Use PX4 target **`gz_x500_mono_cam`** — plain `gz_x500` has no onboard camera.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+cd ~/PX4-Autopilot
+make px4_sitl gz_x500_mono_cam
+```
+
+### Camera bridge
+
+Gazebo publishes on **gz-transport**; perception expects ROS topics on the frozen contract. Use `dondron_bringup` bridge launch (recommended):
+
+```bash
+export ROS_DOMAIN_ID=0
+ros2 launch dondron_bringup camera_bridge.launch.py
+```
+
+Default gz source (verify with `gz topic -l | grep -i camera`):
 
 ```text
-/world/default/model/x500_0/link/camera_link/sensor/imager/image
+/world/default/model/x500_mono_cam_0/link/camera_link/sensor/camera/image
+/world/default/model/x500_mono_cam_0/link/camera_link/sensor/camera/camera_info
 ```
 
-**Launch remap strategy** (until `dondron_bringup` `sil_public.launch.py` in M2):
+Bridged ROS topics: `/camera/image_raw`, `/camera/camera_info`.
+
+### Sim target
 
 ```bash
-# Terminal: perception stub with Gazebo image source
-source /opt/ros/jazzy/setup.bash
-source ~/Projects/dondron/ros2_ws/install/setup.bash
-export ROS_DOMAIN_ID=0   # match PX4 SITL when testing /fmu/out on same machine
-
-ros2 launch dondron_perception perception.launch.py \
-  image_topic:=/world/default/model/x500_0/link/camera_link/sensor/imager/image
+export ROS_LOG_DIR=/tmp/ros_log && mkdir -p /tmp/ros_log
+ros2 launch dondron_bringup sim_target.launch.py
 ```
 
-Or run the node with remaps:
+Default target: red stop sign (YOLO COCO class 11 filtered in node → contract class `"0"`). See `dondron_bringup/models/sim_target/`.
+
+### Inference modes
+
+| Mode | Launch | Node |
+|------|--------|------|
+| M1 stub | `use_stub:=true` (default) | C++ `perception_node` timer |
+| M3 blob (Mac/CI) | `use_stub:=false` | C++ `perception_node` brightness blob |
+| **M3 YOLO (Main PC GPU)** | `use_stub:=false use_yolo:=true` | Python `yolo_inference_node.py` |
+
+**YOLO one-time venv setup (Main PC):**
 
 ```bash
-ros2 run dondron_perception perception_node --ros-args \
-  -r /camera/image_raw:=/world/default/model/x500_0/link/camera_link/sensor/imager/image
+python3 -m venv --system-site-packages ~/dondron_yolo_venv
+~/dondron_yolo_venv/bin/pip install ultralytics
 ```
 
-**Bridge checklist (M3):**
+The YOLO node avoids `cv_bridge` (numpy/opencv ABI mismatch with system ROS Python) — converts `sensor_msgs/Image` to numpy directly. See script header in `scripts/yolo_inference_node.py`.
 
-1. Start Micro-XRCE agent + PX4 `gz_x500` (see `docs/sil-bridge.md`).
-2. Run `ros_gz_image` / bridge launch to expose camera topics on ROS 2.
-3. Launch `dondron_perception` with `image_topic` remap as above.
-4. Verify: `ros2 topic echo /detections --once` → `header.frame_id: camera_optical_frame`.
+```bash
+ros2 launch dondron_perception perception.launch.py use_stub:=false use_yolo:=true
+```
 
-M1 stub publishes valid `/detections` **without** a live camera (timer-only synthetic bbox). Image subscription proves topic wiring when a camera is available.
+YOLO filters pretrained detections to COCO class **`yolo_source_class_id`** (default `11` = stop sign) and publishes contract class **`target_class_id`** (default `"0"`). Publishes **all** boxes above `score_threshold`, not only the top-scoring one.
+
+### Detection HUD (debug)
+
+Optional overlay — not flight-critical:
+
+```bash
+ros2 run dondron_perception detection_visualizer.py
+ros2 run rqt_image_view rqt_image_view /detections/image_annotated
+```
+
+### Verify
+
+```bash
+ros2 topic echo /detections --once
+ros2 topic hz /camera/image_raw
+```
+
+M1 stub still publishes synthetic `/detections` without a live camera. M3+ publishes empty `detections: []` when nothing exceeds threshold.
+
+Full SIL flow: [docs/sil-bridge.md](../../../docs/sil-bridge.md). Vault ops: `sil-m3-camera-view-and-manual-rc`.
 
 ## Build and run
 
@@ -172,10 +216,13 @@ source install/setup.bash
 # M1 stub (no camera required)
 ros2 run dondron_perception perception_node
 
-# M3 inference contract (requires image + camera_info publishers)
+# M3 blob inference (Mac/CI — requires image + camera_info)
 ros2 run dondron_perception perception_node --ros-args -p use_stub:=false
 
-# Or via launch
+# M3 YOLO GPU (Main PC — requires venv + ultralytics)
+ros2 launch dondron_perception perception.launch.py use_stub:=false use_yolo:=true
+
+# Or via launch (stub / blob)
 ros2 launch dondron_perception perception.launch.py
 ros2 launch dondron_perception perception.launch.py use_stub:=false
 ```
@@ -189,16 +236,21 @@ ros2 topic echo /detections --once
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `use_stub` | `true` | M1 timer stub (`true`) or M3 image-callback inference (`false`) |
+| `use_stub` | `true` | M1 timer stub (`true`) or image-callback inference (`false`) |
+| `use_yolo` | `false` | Main PC: run `yolo_inference_node.py` instead of C++ node |
 | `image_topic` | `/camera/image_raw` | Image subscription topic |
 | `camera_info_topic` | `/camera/camera_info` | CameraInfo for monocular range (M3+) |
 | `detections_topic` | `/detections` | Detection publisher topic |
 | `frame_id` | `camera_optical_frame` | Output `header.frame_id` |
 | `publish_rate_hz` | `2.0` | Stub publish rate (`use_stub:=true` only) |
-| `score_threshold` | `0.5` | Minimum detection score (`use_stub:=false`) |
-| `target_width_m` | `0.30` | Known physical width of class-0 target |
-| `target_class_id` | `"0"` | Inference detection class id |
-| `brightness_threshold` | `200` | CPU blob placeholder threshold (Mac/CI; YOLO on Main PC) |
+| `score_threshold` | `0.5` | Minimum detection score (inference / YOLO) |
+| `target_width_m` | `0.30` | Known physical width for monocular range |
+| `target_class_id` | `"0"` | Contract class id published in `/detections` |
+| `yolo_source_class_id` | `11` | COCO class YOLO filters on (11 = stop sign) |
+| `model_path` | `yolov8n.pt` | Ultralytics weights (`use_yolo:=true`) |
+| `yolo_python` | `~/dondron_yolo_venv/bin/python3` | Interpreter with ultralytics installed |
+| `device` | `auto` | `cuda:0`, `cpu`, or auto-detect |
+| `brightness_threshold` | `200` | CPU blob placeholder (Mac/CI; not YOLO) |
 | `default_focal_length_px` | `554.25` | Fallback fx when CameraInfo not yet received |
 | `stub_class_id` | `"0"` | Synthetic detection class |
 | `stub_score` | `0.95` | Synthetic confidence |
@@ -212,8 +264,8 @@ ros2 topic echo /detections --once
 
 | Milestone | Scope |
 |-----------|-------|
-| **M1** (this) | Stub publisher, topic contract freeze |
-| **M3** | `cv_bridge` + YOLO inference, Gazebo sim target, empty-array behavior |
+| **M1** | Stub publisher, topic contract freeze |
+| **M3** | YOLO GPU inference, Gazebo sim target, camera bridge, empty-array behavior, detection HUD — **Main PC verified 2026-07-28** |
 | **M4** | Calibrated intrinsics, real-field recognition gate |
 
-Bringup integration: `dondron_bringup/launch/sil_public.launch.py` (M2).
+Bringup integration: `dondron_bringup/launch/sil_public.launch.py`, `camera_bridge.launch.py`, `sim_target.launch.py`.

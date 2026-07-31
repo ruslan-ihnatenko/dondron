@@ -45,9 +45,18 @@ cd ~/Micro-XRCE-DDS-Agent/build && sudo make install && sudo ldconfig /usr/local
 ```bash
 source /opt/ros/jazzy/setup.bash
 cd ~/PX4-Autopilot
-make px4_sitl gz_x500              # GUI
-# HEADLESS=1 make px4_sitl gz_x500  # headless
+make px4_sitl gz_x500              # GUI — M0–M2 smoke (no onboard camera)
+# HEADLESS=1 make px4_sitl gz_x500  # headless smoke
+
+# M3+ perception (monocular camera on airframe):
+make px4_sitl gz_x500_mono_cam     # GUI
+# HEADLESS=1 make px4_sitl gz_x500_mono_cam
 ```
+
+| PX4 target | Camera | Use |
+|------------|--------|-----|
+| `gz_x500` | none | Agent/topic smoke, M2 TRACK with stub detections |
+| `gz_x500_mono_cam` | forward mono | M3 YOLO + `/camera/image_raw` (see below) |
 
 When the agent connects, PX4 logs lines like:
 
@@ -70,8 +79,68 @@ You should see topics such as `/fmu/out/sensor_combined`, `/fmu/out/vehicle_stat
 Quick echo test:
 
 ```bash
-ros2 topic echo /fmu/out/vehicle_status --once
+ros2 topic echo /fmu/out/vehicle_status_v4 --once
 ```
+
+## M3 perception stack (Main PC)
+
+After T1 (agent) + T2 (`gz_x500_mono_cam`) are running:
+
+```bash
+export ROS_DOMAIN_ID=0
+export ROS_LOG_DIR=/tmp/ros_log   # required for ros_gz_sim spawn
+mkdir -p /tmp/ros_log
+
+source /opt/ros/jazzy/setup.bash
+source ~/Projects/dondron/ros2_ws/install/setup.bash
+
+# Bridge Gazebo camera → frozen contract topics
+ros2 launch dondron_bringup camera_bridge.launch.py
+
+# Spawn sim target(s) — default red stop-sign at (5, 0)
+ros2 launch dondron_bringup sim_target.launch.py
+# Optional: extra sign sizes + orientation cubes
+ros2 launch dondron_bringup spawn_orientation_props.launch.py
+```
+
+Verify camera + bridge:
+
+```bash
+ros2 topic hz /camera/image_raw
+gz topic -l | grep -i camera   # if bridge fails — check model name x500_mono_cam_0
+```
+
+**YOLO venv (one-time Main PC setup):**
+
+```bash
+python3 -m venv --system-site-packages ~/dondron_yolo_venv
+~/dondron_yolo_venv/bin/pip install ultralytics
+```
+
+**Mode A — manual flight + real detections** (no BT, no Offboard):
+
+```bash
+ros2 launch dondron_perception perception.launch.py use_stub:=false use_yolo:=true
+ros2 run dondron_perception detection_visualizer.py   # optional HUD
+ros2 run rqt_image_view rqt_image_view /detections/image_annotated
+```
+
+Arm and fly via QGroundControl (Position/Altitude — not Offboard).
+
+**Mode B — autonomous TRACK with YOLO** (after Mode A works):
+
+```bash
+ros2 launch dondron_bringup sil_public.launch.py \
+  ros_domain_id:=0 \
+  image_topic:=/camera/image_raw \
+  camera_info_topic:=/camera/camera_info \
+  use_stub:=false \
+  use_yolo:=true
+```
+
+Do not use manual sticks during Mode B. For repeatable Mode B regression (search-pattern drift), see `docs/dev_state.md` → **M3 Mode B verification notes** (`bt_xml_path` + scratch BT).
+
+Vault ops guide: `01_Projects/Robotics/DonDron/Docs/notes/sil-m3-camera-view-and-manual-rc.md`.
 
 ## Build px4_msgs (after clone or PX4 upgrade)
 
