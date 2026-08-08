@@ -19,6 +19,7 @@ IDLE → ARM → TAKEOFF → SEARCH → ACQUIRE → TRACK
 | `Takeoff` | Action | `VEHICLE_CMD_NAV_TAKEOFF` |
 | `EnableOffboard` | Action | Publishes `/flight_api/enable_offboard` |
 | `WaitOffboard` | Action | Waits for Offboard nav state |
+| `ClimbToAltitude` | Action | Closed-loop climb to target height via `/fmu/out/vehicle_local_position_v1` |
 | `ExecuteSearchPattern` | Action | Generic search velocities via `/flight_api/cmd_setpoint` |
 | `TargetAcquired` | Condition | Reads `/detections` for target class (read-only) |
 | `TrackTarget` | Action | Maintains visual lock via `/detections` stability |
@@ -29,10 +30,29 @@ IDLE → ARM → TAKEOFF → SEARCH → ACQUIRE → TRACK
 | Topic | Direction | Notes |
 |-------|-----------|-------|
 | `/detections` | subscribe (read-only) | `TargetAcquired`, `TrackTarget` |
-| `/flight_api/cmd_setpoint` | publish | Search pattern only — generic velocities |
+| `/flight_api/cmd_setpoint` | publish | Climb + search pattern velocities |
 | `/flight_api/enable_offboard` | publish | Offboard mode request |
 | `/fmu/in/vehicle_command` | publish | Arm, takeoff, RTL, land |
-| `/fmu/out/vehicle_status` | subscribe | RC override / offboard monitoring |
+| `/fmu/out/vehicle_status_v4` | subscribe | RC override / offboard monitoring |
+| `/fmu/out/vehicle_local_position_v1` | subscribe | Closed-loop altitude in `ClimbToAltitude` |
+
+## ClimbToAltitude (closed-loop)
+
+Reads PX4 fused local position (`z` in NED → height = `-z` m above local origin). Publishes NED velocity setpoints on `/flight_api/cmd_setpoint` until measured height reaches `altitude_m` within `tolerance_m` (default 0.3 m). If already at/above the target band on entry (e.g. BT relaunch mid-flight), returns SUCCESS without climbing again. Times out to FAILURE after `timeout_s` (default 30 s) if altitude is never reached or no position messages arrive.
+
+BT ports: `altitude_m`, `climb_rate_mps`, `tolerance_m`, `timeout_s`.
+
+## Main PC SIL verify (ClimbToAltitude)
+
+```bash
+# Terminal stack: agent → PX4 gz_x500_mono_cam → sil_public (see docs/sil-bridge.md)
+ros2 topic list | grep local_position   # expect /fmu/out/vehicle_local_position_v1
+ros2 topic echo /fmu/out/vehicle_local_position_v1 --field z
+
+# Mid-flight relaunch regression: while drone is airborne after first climb,
+# kill and relaunch only state_machine_node — must log
+# "already at X m (target 3.0 m) — skipping climb" and NOT compound altitude.
+```
 
 ## Build
 

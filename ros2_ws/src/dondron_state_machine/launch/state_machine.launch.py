@@ -22,6 +22,11 @@ def generate_launch_description():
             default_value='/fmu/out/vehicle_status_v4',
             description='PX4 vehicle status topic (see flight_api.launch.py)',
         ),
+        DeclareLaunchArgument(
+            'vehicle_local_position_topic',
+            default_value='/fmu/out/vehicle_local_position_v1',
+            description='PX4 local position topic for closed-loop ClimbToAltitude',
+        ),
         Node(
             package='dondron_state_machine',
             executable='state_machine_node',
@@ -31,6 +36,8 @@ def generate_launch_description():
                 'bt_xml_path': LaunchConfiguration('bt_xml_path'),
                 'tick_rate_hz': LaunchConfiguration('tick_rate_hz'),
                 'vehicle_status_topic': LaunchConfiguration('vehicle_status_topic'),
+                'vehicle_local_position_topic': LaunchConfiguration(
+                    'vehicle_local_position_topic'),
             }],
         ),
     ])

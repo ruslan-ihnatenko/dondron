@@ -5,6 +5,7 @@
 
 #include "behaviortree_cpp/action_node.h"
 #include "behaviortree_cpp/condition_node.h"
+#include "dondron_state_machine/altitude_control.hpp"
 #include "dondron_state_machine/bt_nodes.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "px4_msgs/msg/vehicle_command.hpp"
@@ -142,8 +143,10 @@ public:
   static BT::PortsList providedPorts()
   {
     return {
-      BT::InputPort<double>("altitude_m", 3.0, "Climb height (m)"),
+      BT::InputPort<double>("altitude_m", 3.0, "Target height above local origin (m, positive up)"),
       BT::InputPort<double>("climb_rate_mps", 1.0, "Upward speed (m/s)"),
+      BT::InputPort<double>("tolerance_m", 0.3, "Success band below target altitude (m)"),
+      BT::InputPort<double>("timeout_s", 30.0, "Max time to reach target altitude (s)"),
     };
   }
 
@@ -152,7 +155,8 @@ public:
     start_ = std::chrono::steady_clock::now();
     altitude_m_ = getInput<double>("altitude_m").value_or(3.0);
     climb_rate_mps_ = getInput<double>("climb_rate_mps").value_or(1.0);
-    duration_s_ = altitude_m_ / std::max(climb_rate_mps_, 0.1) + 1.0;
+    tolerance_m_ = getInput<double>("tolerance_m").value_or(0.3);
+    timeout_s_ = getInput<double>("timeout_s").value_or(30.0);
     auto ctx = get_context(*this);
     static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr pub;
     if (!pub) {
@@ -160,37 +164,98 @@ public:
         "/flight_api/cmd_setpoint", rclcpp::QoS(10));
     }
     cmd_pub_ = pub;
+
+    if (ctx->has_altitude()) {
+      const auto eval = evaluate_climb_to_altitude(
+        ctx->altitude_m(), altitude_m_, tolerance_m_, climb_rate_mps_);
+      if (eval.decision == ClimbDecision::Success) {
+        publish_hold(ctx);
+        RCLCPP_INFO(
+          ctx->node->get_logger(),
+          "ClimbToAltitude: already at %.2f m (target %.2f m) — skipping climb",
+          ctx->altitude_m(), altitude_m_);
+        return BT::NodeStatus::SUCCESS;
+      }
+    }
+
     return BT::NodeStatus::RUNNING;
   }
 
   BT::NodeStatus onRunning() override
   {
+    auto ctx = get_context(*this);
     const auto elapsed = std::chrono::duration<double>(
       std::chrono::steady_clock::now() - start_).count();
 
+    if (elapsed > timeout_s_) {
+      if (ctx->has_altitude()) {
+        RCLCPP_ERROR(
+          ctx->node->get_logger(),
+          "ClimbToAltitude timed out at %.2f m (target %.2f m, tolerance %.2f m)",
+          ctx->altitude_m(), altitude_m_, tolerance_m_);
+      } else {
+        RCLCPP_ERROR(
+          ctx->node->get_logger(),
+          "ClimbToAltitude timed out — no valid /fmu/out/vehicle_local_position_v1");
+      }
+      publish_hold(ctx);
+      return BT::NodeStatus::FAILURE;
+    }
+
+    if (!ctx->has_altitude()) {
+      RCLCPP_WARN_THROTTLE(
+        ctx->node->get_logger(), *ctx->node->get_clock(), 2000,
+        "ClimbToAltitude waiting for valid local position...");
+      return BT::NodeStatus::RUNNING;
+    }
+
+    const double current_altitude_m = ctx->altitude_m();
+    const auto eval = evaluate_climb_to_altitude(
+      current_altitude_m, altitude_m_, tolerance_m_, climb_rate_mps_);
+
     geometry_msgs::msg::TwistStamped cmd;
-    cmd.header.stamp = get_context(*this)->node->now();
+    cmd.header.stamp = ctx->node->now();
     cmd.header.frame_id = "ned";
-    cmd.twist.linear.z = -static_cast<double>(climb_rate_mps_);
+    cmd.twist.linear.z = eval.vz_ned;
     cmd_pub_->publish(cmd);
 
-    if (elapsed >= duration_s_) {
-      geometry_msgs::msg::TwistStamped hold;
-      hold.header.stamp = get_context(*this)->node->now();
-      hold.header.frame_id = "ned";
-      cmd_pub_->publish(hold);
+    if (eval.decision == ClimbDecision::Success) {
+      publish_hold(ctx);
+      RCLCPP_INFO(
+        ctx->node->get_logger(),
+        "ClimbToAltitude reached %.2f m (target %.2f m)",
+        current_altitude_m, altitude_m_);
       return BT::NodeStatus::SUCCESS;
     }
+
+    RCLCPP_INFO_THROTTLE(
+      ctx->node->get_logger(), *ctx->node->get_clock(), 2000,
+      "ClimbToAltitude climbing: %.2f m -> %.2f m",
+      current_altitude_m, altitude_m_);
     return BT::NodeStatus::RUNNING;
   }
 
-  void onHalted() override {}
+  void onHalted() override
+  {
+    if (cmd_pub_) {
+      publish_hold(get_context(*this));
+    }
+  }
 
 private:
+  void publish_hold(const MissionContext::Ptr & ctx)
+  {
+    geometry_msgs::msg::TwistStamped hold;
+    hold.header.stamp = ctx->node->now();
+    hold.header.frame_id = "ned";
+    cmd_pub_->publish(hold);
+  }
+
   std::chrono::steady_clock::time_point start_;
   double altitude_m_{3.0};
   double climb_rate_mps_{1.0};
-  double duration_s_{4.0};
+  double tolerance_m_{0.3};
+  double timeout_s_{30.0};
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_pub_;
 };
 

@@ -5,9 +5,12 @@
 #include <mutex>
 #include <string>
 
+#include "px4_msgs/msg/vehicle_local_position.hpp"
 #include "px4_msgs/msg/vehicle_status.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "vision_msgs/msg/detection2_d_array.hpp"
+
+#include "dondron_state_machine/altitude_control.hpp"
 
 namespace dondron_state_machine
 {
@@ -21,6 +24,8 @@ struct MissionContext
   {
     const auto vehicle_status_topic = node->declare_parameter<std::string>(
       "vehicle_status_topic", "/fmu/out/vehicle_status_v4");
+    const auto local_position_topic = node->declare_parameter<std::string>(
+      "vehicle_local_position_topic", "/fmu/out/vehicle_local_position_v1");
 
     detections_sub_ = node->create_subscription<vision_msgs::msg::Detection2DArray>(
       "/detections", rclcpp::QoS(10),
@@ -36,6 +41,14 @@ struct MissionContext
         std::lock_guard<std::mutex> lock(mutex_);
         latest_status_ = *msg;
         has_status_ = true;
+      });
+
+    local_position_sub_ = node->create_subscription<px4_msgs::msg::VehicleLocalPosition>(
+      local_position_topic, rclcpp::SensorDataQoS(),
+      [this](const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        latest_local_position_ = *msg;
+        has_local_position_ = true;
       });
   }
 
@@ -143,19 +156,34 @@ struct MissionContext
     return has_status_ && latest_status_.gcs_connection_lost;
   }
 
+  bool has_altitude() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return has_local_position_ && latest_local_position_.z_valid;
+  }
+
+  double altitude_m() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return ned_z_to_altitude_m(latest_local_position_.z);
+  }
+
   rclcpp::Node::SharedPtr node;
 
 private:
   mutable std::mutex mutex_;
   vision_msgs::msg::Detection2DArray latest_detections_;
   px4_msgs::msg::VehicleStatus latest_status_;
+  px4_msgs::msg::VehicleLocalPosition latest_local_position_;
   bool has_detections_{false};
   bool has_status_{false};
+  bool has_local_position_{false};
   mutable bool ever_was_offboard_{false};
   mutable int stable_count_{0};
 
   rclcpp::Subscription<vision_msgs::msg::Detection2DArray>::SharedPtr detections_sub_;
   rclcpp::Subscription<px4_msgs::msg::VehicleStatus>::SharedPtr status_sub_;
+  rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr local_position_sub_;
 };
 
 }  // namespace dondron_state_machine
