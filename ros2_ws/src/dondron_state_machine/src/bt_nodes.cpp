@@ -7,6 +7,7 @@
 #include "behaviortree_cpp/condition_node.h"
 #include "dondron_state_machine/altitude_control.hpp"
 #include "dondron_state_machine/bt_nodes.hpp"
+#include "dondron_state_machine/orbit_control.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
 #include "px4_msgs/msg/vehicle_command.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -341,6 +342,133 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_pub_;
 };
 
+class ExecuteOrbitSearchAction : public BT::StatefulActionNode
+{
+public:
+  ExecuteOrbitSearchAction(const std::string & name, const BT::NodeConfig & config)
+  : BT::StatefulActionNode(name, config) {}
+
+  static BT::PortsList providedPorts()
+  {
+    return {
+      BT::InputPort<double>("radius_m", 10.0, "Target orbit radius (m)"),
+      BT::InputPort<double>("tangential_speed_mps", 0.5, "Orbit speed (m/s)"),
+      BT::InputPort<double>("duration_s", 60.0, "Orbit duration (s)"),
+      BT::InputPort<double>("center_x_m", 0.0, "Orbit center north offset (m, NED)"),
+      BT::InputPort<double>("center_y_m", 0.0, "Orbit center east offset (m, NED)"),
+      BT::InputPort<double>("radius_tolerance_m", 1.0, "Band to start tangential orbit (m)"),
+      BT::InputPort<double>("timeout_s", 30.0, "Max wait for valid local position (s)"),
+    };
+  }
+
+  BT::NodeStatus onStart() override
+  {
+    start_ = std::chrono::steady_clock::now();
+    radius_m_ = getInput<double>("radius_m").value_or(10.0);
+    tangential_speed_mps_ = getInput<double>("tangential_speed_mps").value_or(0.5);
+    duration_s_ = getInput<double>("duration_s").value_or(60.0);
+    center_x_m_ = getInput<double>("center_x_m").value_or(0.0);
+    center_y_m_ = getInput<double>("center_y_m").value_or(0.0);
+    radius_tolerance_m_ = getInput<double>("radius_tolerance_m").value_or(1.0);
+    timeout_s_ = getInput<double>("timeout_s").value_or(30.0);
+    auto ctx = get_context(*this);
+    static rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr pub;
+    if (!pub) {
+      pub = ctx->node->create_publisher<geometry_msgs::msg::TwistStamped>(
+        "/flight_api/cmd_setpoint", rclcpp::QoS(10));
+    }
+    cmd_pub_ = pub;
+    RCLCPP_INFO(
+      ctx->node->get_logger(),
+      "ExecuteOrbitSearch: radius %.1f m, speed %.2f m/s, duration %.0f s, center (%.1f N, %.1f E)",
+      radius_m_, tangential_speed_mps_, duration_s_, center_x_m_, center_y_m_);
+    return BT::NodeStatus::RUNNING;
+  }
+
+  BT::NodeStatus onRunning() override
+  {
+    auto ctx = get_context(*this);
+    const auto elapsed = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - start_).count();
+
+    if (elapsed > timeout_s_ && !ctx->has_horizontal_position()) {
+      RCLCPP_ERROR(
+        ctx->node->get_logger(),
+        "ExecuteOrbitSearch timed out — no valid horizontal local position");
+      publish_hold(ctx);
+      return BT::NodeStatus::FAILURE;
+    }
+
+    if (elapsed >= duration_s_) {
+      publish_hold(ctx);
+      RCLCPP_INFO(ctx->node->get_logger(), "ExecuteOrbitSearch completed %.0f s orbit", duration_s_);
+      return BT::NodeStatus::SUCCESS;
+    }
+
+    if (!ctx->has_horizontal_position()) {
+      RCLCPP_WARN_THROTTLE(
+        ctx->node->get_logger(), *ctx->node->get_clock(), 2000,
+        "ExecuteOrbitSearch waiting for valid local position xy...");
+      return BT::NodeStatus::RUNNING;
+    }
+
+    const double heading = ctx->has_heading() ? ctx->heading_rad() : 0.0;
+    const auto setpoint = compute_orbit_setpoint_ned(
+      ctx->position_x_m(), ctx->position_y_m(),
+      center_x_m_, center_y_m_, radius_m_, tangential_speed_mps_, heading,
+      radius_tolerance_m_);
+
+    geometry_msgs::msg::TwistStamped cmd;
+    cmd.header.stamp = ctx->node->now();
+    cmd.header.frame_id = "ned";
+    cmd.twist.linear.x = setpoint.vx;
+    cmd.twist.linear.y = setpoint.vy;
+    cmd.twist.linear.z = 0.0;
+    cmd.twist.angular.z = setpoint.yawspeed;
+    cmd_pub_->publish(cmd);
+
+    if (setpoint.phase == OrbitPhase::Expand) {
+      RCLCPP_INFO_THROTTLE(
+        ctx->node->get_logger(), *ctx->node->get_clock(), 3000,
+        "ExecuteOrbitSearch expanding to radius %.1f m (now %.1f m)",
+        radius_m_, std::hypot(
+          ctx->position_x_m() - center_x_m_, ctx->position_y_m() - center_y_m_));
+    } else {
+      RCLCPP_INFO_THROTTLE(
+        ctx->node->get_logger(), *ctx->node->get_clock(), 3000,
+        "ExecuteOrbitSearch orbiting at (%.1f N, %.1f E), yaw->center",
+        ctx->position_x_m(), ctx->position_y_m());
+    }
+    return BT::NodeStatus::RUNNING;
+  }
+
+  void onHalted() override
+  {
+    if (cmd_pub_) {
+      publish_hold(get_context(*this));
+    }
+  }
+
+private:
+  void publish_hold(const MissionContext::Ptr & ctx)
+  {
+    geometry_msgs::msg::TwistStamped hold;
+    hold.header.stamp = ctx->node->now();
+    hold.header.frame_id = "ned";
+    cmd_pub_->publish(hold);
+  }
+
+  std::chrono::steady_clock::time_point start_;
+  double radius_m_{10.0};
+  double tangential_speed_mps_{0.5};
+  double duration_s_{60.0};
+  double center_x_m_{0.0};
+  double center_y_m_{0.0};
+  double radius_tolerance_m_{1.0};
+  double timeout_s_{30.0};
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr cmd_pub_;
+};
+
 class TargetAcquiredCondition : public BT::ConditionNode
 {
 public:
@@ -534,6 +662,7 @@ void register_bt_nodes(BT::BehaviorTreeFactory & factory)
   factory.registerNodeType<EnableOffboardAction>("EnableOffboard");
   factory.registerNodeType<WaitOffboardAction>("WaitOffboard");
   factory.registerNodeType<ExecuteSearchPatternAction>("ExecuteSearchPattern");
+  factory.registerNodeType<ExecuteOrbitSearchAction>("ExecuteOrbitSearch");
   factory.registerNodeType<TargetAcquiredCondition>("TargetAcquired");
   factory.registerNodeType<TrackTargetAction>("TrackTarget");
   factory.registerNodeType<RCOverrideNotActiveCondition>("RC_Override_Not_Active");

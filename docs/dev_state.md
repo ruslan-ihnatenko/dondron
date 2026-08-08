@@ -9,6 +9,7 @@ Code-repo session state (like UpAndDown `experiment_state_*.md`). Update at sess
 | 2026-06-25 | Main PC | `gz_x500` | yes | Agent UDP 8888 → session established; `/fmu/out/*` on `ROS_DOMAIN_ID=0` (PX4 SITL default); `sensor_combined` echo OK; workspace overlay sourced |
 | 2026-07-02 | Main PC | `gz_x500` | yes | `sil_public.launch.py` — Arm → Offboard → Climb → Search → **TRACK** (`visual lock acquired`); `/fmu/out/vehicle_status_v4`; SIL bench PX4 params in `dondron_bringup/README.md` |
 | 2026-07-02 | Dev env | — | — | M2 packages build + node smoke test (no PX4); BT ticks Arm→…; topics `/detections`, `/flight_api/*`, `/fmu/in/*` verified |
+| 2026-08-08 | Main PC | `gz_x500_mono_cam` GUI | yes | **Orbit search v1 SIL verified.** `search_pattern:=orbit`, r=25 m, 1.2 m/s, center (8.5,0), nose-in yaw + expand phase; 6 sim signs; YOLO detections during pass; orbit 120 s SUCCESS. BT acquire fix: removed `ReactiveSequence`+`TargetAcquired` flicker failure at orbit end. `detection_visualizer` `show_window` param. |
 | 2026-08-08 | Main PC | `gz_x500` HEADLESS | yes | **ClimbToAltitude closed-loop verified.** Test 1: reached 2.76 m (target 3.0 m, z≈-2.74). Test 2: relaunch `state_machine_node` mid-flight → `already at 2.75 m — skipping climb`, z stayed ~-2.65…-2.75 (no compounding). |
 | 2026-07-28 | Main PC | `gz_x500_mono_cam` | yes | **M3 Mode A + Mode B both verified.** Mode A (manual RC + real YOLOv8n GPU inference via `dondron_yolo_venv`): flown manually via QGC, `/detections` confirmed live. Mode B (autonomous BT: perception+flight_api+state_machine): reached **TRACK** — `TargetAcquired` SUCCESS, `"TRACK: visual lock acquired (class 0)"`, held with repeated `"TRACK: maintaining visual lock"` over ~7s. See "M3 Mode B verification notes" below for method and caveats. |
 
@@ -17,9 +18,9 @@ Code-repo session state (like UpAndDown `experiment_state_*.md`). Update at sess
 - [x] `dondron_description` — minimal URDF/xacro; `camera_optical_frame` documented
 - [x] `dondron_bringup` — `sil_manual.launch.py`, `sil_public.launch.py`; package README
 - [x] `dondron_bridge` — agent launch (`agent.launch.py`), `ROS_DOMAIN_ID=42` default
-- [x] `dondron_perception` — M1 stub + **M3 inference contract** (Mac slice A): `use_stub`, monocular range, synthetic-image launch tests; YOLO scaffold only
+- [x] `dondron_perception` — M1 stub + M3 YOLO GPU; `detection_visualizer` with optional `show_window`
 - [x] `dondron_flight_api` — `geometry_msgs/TwistStamped` cmd_setpoint; `FlightApiStatus`; harness; Offboard bridge
-- [x] `dondron_state_machine` — BTCPP v4 through TRACK; `mission.xml`; closed-loop `ClimbToAltitude` (2026-08-08)
+- [x] `dondron_state_machine` — BTCPP v4 through TRACK; closed-loop `ClimbToAltitude`; **orbit search** `ExecuteOrbitSearch` + `search_pattern` switch (2026-08-08)
 - [ ] `dondron_diagnostics` — health monitoring, rosbag triggers
 
 ## Pending work
@@ -30,6 +31,7 @@ Line 1 milestones — vault tasks in `01_Projects/Robotics/DonDron/Tasks/`:
 - [x] **M1** — Task `20260625-l1perc`: perception stub + topic contract freeze
 - [x] **M2** — Tasks `20260625-l1flight`, `20260625-l1bt`, `20260625-l1bring`: TRACK BT in `sil_public.launch.py` — **Main PC SIL verified 2026-07-02**, committed on `main`
 - [x] **M3** — YOLO + sim target in Gazebo — **Mac slice A done 2026-07-03**; **Main PC camera bridge + YOLO GPU + sim target + Mode A/B verified 2026-07-28**
+- [x] **M3 orbit search** — Task `20260808-l1orbit`: closed-loop orbit + launch switch — **Main PC SIL verified 2026-08-08** (see SIL row above)
 - [ ] **M4** — Task `20260625-l1gate`: real-life recognition + Line 1 go/no-go metrics
 - [ ] **Later** — Task `20260625-l1diag`: diagnostics + rosbag triggers
 
@@ -47,12 +49,15 @@ Line 1 milestones — vault tasks in `01_Projects/Robotics/DonDron/Tasks/`:
 - Offboard mode command must use `DO_SET_MODE` **param2=6** (main mode), not nav_state 14
 - SITL bench: battery failsafe can RTL immediately after takeoff — disable via params in `dondron_bringup/README.md` (`NAV_DLL_ACT`, `COM_LOW_BAT_ACT`, etc.)
 - Search-pattern sway in Gazebo is expected (oscillating yaw rate at 10 Hz BT tick); TRACK holds visual lock only (no closed-loop flight)
+- **Small-object detection at long range:** YOLOv8n + wide FOV struggles beyond ~8 m (signs tiny on 25 m orbit); tune `score_threshold`, fly closer, larger sim props, or `yolov8s`/higher `imgsz` (future param)
+- **BT post-orbit:** pre-fix `ReactiveSequence`+`TargetAcquired` caused one missed frame → mission FAILURE; fixed — `TrackTarget` only with `lost_ticks` debounce
 - Mac Dev Container: node dev only; full SIL on Main PC
 - M3 perception: Mac-verified `use_stub:=false` contract (gtest monocular range + synthetic Image/CameraInfo launch tests); CPU blob placeholder until Main PC YOLO
 - `px4_msgs` — local workspace clone (`ros2_ws/src/px4_msgs`); not vendored in git; clone per `docs/sil-bridge.md`
 
 ## Last commit (Line 1)
 
+- **Orbit search + BT acquire fix:** (this session) on `main` — `feat(state-machine)` orbit pattern; Main PC SIL verified 2026-08-08
 - **ClimbToAltitude closed-loop:** `b30a036` on `main` — `fix(state-machine)`; Main PC SIL verified 2026-08-08
 - **M3 (Main PC SIL):** `84aa0be` (`feat(bringup)`: camera bridge, sim targets, BT XML override), `b6c8e6c` (`feat(perception)`: YOLOv8n GPU inference + detection HUD) on `main` — Mode A + Mode B verified 2026-07-28
 - **M2:** `1abc10f` on `main` — `dondron_flight_api`, `dondron_state_machine`, `dondron_bringup` (`sil_public`); Main PC SIL TRACK verified 2026-07-02
@@ -63,6 +68,6 @@ Line 1 milestones — vault tasks in `01_Projects/Robotics/DonDron/Tasks/`:
 
 - GitHub Actions: `.github/workflows/ci.yml` — colcon build/test + `scripts/check-public-boundary.sh`
 - Local: skill `dondron-colcon-test`
-- gtest: `dondron_flight_api` (`test_frame_transform`), `dondron_perception` (`test_monocular_range`), `dondron_state_machine` (`test_altitude_control`)
+- gtest: `dondron_flight_api` (`test_frame_transform`), `dondron_perception` (`test_monocular_range`), `dondron_state_machine` (`test_altitude_control`, `test_orbit_control`)
 - launch_testing: `dondron_perception` (`test_perception_launch`, `test_perception_inference_*_launch`)
 - Agent evals: `.cursor/evals/` (manual)

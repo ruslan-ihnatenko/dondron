@@ -189,6 +189,8 @@ Optional overlay — not flight-critical:
 
 ```bash
 ros2 run dondron_perception detection_visualizer.py
+# optional OpenCV window (needs DISPLAY):
+ros2 run dondron_perception detection_visualizer.py --ros-args -p show_window:=true
 ros2 run rqt_image_view rqt_image_view /detections/image_annotated
 ```
 

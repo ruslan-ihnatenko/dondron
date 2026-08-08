@@ -20,6 +20,7 @@ public:
   {
     bt_xml_path_ = declare_parameter<std::string>("bt_xml_path", "");
     tick_rate_hz_ = declare_parameter<double>("tick_rate_hz", 10.0);
+    search_pattern_ = declare_parameter<std::string>("search_pattern", "weave");
 
     if (bt_xml_path_.empty()) {
       bt_xml_path_ = ament_index_cpp::get_package_share_directory("dondron_state_machine") +
@@ -35,6 +36,7 @@ public:
     factory_.registerBehaviorTreeFromFile(bt_xml_path_);
     tree_ = factory_.createTree("MissionRoot");
     tree_.rootBlackboard()->set("mission_context", mission_context_);
+    tree_.rootBlackboard()->set("search_pattern", search_pattern_);
 
     logger_ = std::make_unique<BT::StdCoutLogger>(tree_);
 
@@ -43,7 +45,9 @@ public:
       std::chrono::milliseconds(period_ms),
       std::bind(&StateMachineNode::on_tick, this));
 
-    RCLCPP_INFO(get_logger(), "State machine loaded BT from %s", bt_xml_path_.c_str());
+    RCLCPP_INFO(
+      get_logger(), "State machine loaded BT from %s (search_pattern=%s)",
+      bt_xml_path_.c_str(), search_pattern_.c_str());
   }
 
 private:
@@ -67,6 +71,7 @@ private:
   }
 
   std::string bt_xml_path_;
+  std::string search_pattern_{"weave"};
   double tick_rate_hz_{10.0};
   bool mission_halted_{false};
   MissionContext::Ptr mission_context_;

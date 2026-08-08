@@ -27,6 +27,11 @@ def generate_launch_description():
             default_value='/fmu/out/vehicle_local_position_v1',
             description='PX4 local position topic for closed-loop ClimbToAltitude',
         ),
+        DeclareLaunchArgument(
+            'search_pattern',
+            default_value='weave',
+            description='Search leg: weave (default) or orbit (circular closed-loop)',
+        ),
         Node(
             package='dondron_state_machine',
             executable='state_machine_node',
@@ -38,6 +43,7 @@ def generate_launch_description():
                 'vehicle_status_topic': LaunchConfiguration('vehicle_status_topic'),
                 'vehicle_local_position_topic': LaunchConfiguration(
                     'vehicle_local_position_topic'),
+                'search_pattern': LaunchConfiguration('search_pattern'),
             }],
         ),
     ])

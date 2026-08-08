@@ -72,6 +72,11 @@ def generate_launch_description():
                 '(default: package behavior_trees/mission.xml)'
             ),
         ),
+        DeclareLaunchArgument(
+            'search_pattern',
+            default_value='weave',
+            description='Forwarded to state_machine — weave (default) or orbit',
+        ),
         SetEnvironmentVariable('ROS_DOMAIN_ID', LaunchConfiguration('ros_domain_id')),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
@@ -99,6 +104,7 @@ def generate_launch_description():
             launch_arguments={
                 'vehicle_status_topic': LaunchConfiguration('vehicle_status_topic'),
                 'bt_xml_path': LaunchConfiguration('bt_xml_path'),
+                'search_pattern': LaunchConfiguration('search_pattern'),
             }.items(),
         ),
     ])

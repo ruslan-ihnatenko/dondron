@@ -99,6 +99,7 @@ ros2 launch dondron_bringup sil_public.launch.py \
 | `use_stub` | `true` | `false` for real inference |
 | `use_yolo` | `false` | `true` for Main PC YOLOv8n GPU path |
 | `bt_xml_path` | `""` | Optional scratch BT XML (for Mode B regression tuning) |
+| `search_pattern` | `weave` | `weave` or `orbit` — forwarded to state_machine |
 | `vehicle_status_topic` | `/fmu/out/vehicle_status_v4` | Match bridged PX4 topic |
 
 **Mode B:** do not fly manually while Offboard is active. See vault ops note `sil-m3-camera-view-and-manual-rc`.

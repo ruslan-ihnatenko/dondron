@@ -7,12 +7,29 @@
         <Action ID="Arm"/>
         <Action ID="EnableOffboard"/>
         <Action ID="WaitOffboard" timeout_s="20.0"/>
-        <Action ID="ClimbToAltitude" altitude_m="3.0" climb_rate_mps="1.0"/>
-        <Action ID="ExecuteSearchPattern" duration_s="5.0" forward_speed_mps="0.5" yaw_rate_radps="0.3"/>
-        <ReactiveSequence name="acquire_loop">
-          <Condition ID="TargetAcquired" target_class_id="0" min_score="0.5"/>
-          <Action ID="TrackTarget" target_class_id="0" min_score="0.5" stable_ticks="3" lost_ticks="10"/>
-        </ReactiveSequence>
+        <Action ID="ClimbToAltitude" altitude_m="5.0" climb_rate_mps="1.0"/>
+        <IfThenElse name="search_pattern_select">
+          <ScriptCondition code="search_pattern == &apos;orbit&apos;"/>
+          <Action ID="ExecuteOrbitSearch"
+                  radius_m="25.0"
+                  tangential_speed_mps="3.2"
+                  duration_s="120.0"
+                  center_x_m="8.5"
+                  center_y_m="0.0"
+                  radius_tolerance_m="2.0"/>
+          <Action ID="ExecuteSearchPattern"
+                  duration_s="5.0"
+                  forward_speed_mps="0.5"
+                  yaw_rate_radps="0.3"/>
+        </IfThenElse>
+        <!-- TrackTarget waits for stable detections internally; do not wrap in
+             ReactiveSequence with TargetAcquired — that re-checks every tick and
+             fails the mission on a single missed detection frame. -->
+        <Action ID="TrackTarget"
+                target_class_id="0"
+                min_score="0.5"
+                stable_ticks="3"
+                lost_ticks="15"/>
       </Sequence>
     </ReactiveSequence>
   </BehaviorTree>

@@ -14,7 +14,11 @@ Run standalone:
 
     ros2 run dondron_perception detection_visualizer.py
 
-Then view with:
+Open an OpenCV window (needs a display):
+
+    ros2 run dondron_perception detection_visualizer.py --ros-args -p show_window:=true
+
+Or view the republished topic in rqt:
 
     ros2 run rqt_image_view rqt_image_view /detections/image_annotated
 
@@ -67,12 +71,14 @@ class DetectionVisualizer(Node):
         self.declare_parameter('output_topic', '/detections/image_annotated')
         self.declare_parameter('box_color_bgr', [0, 255, 0])
         self.declare_parameter('stale_detections_timeout_sec', 1.0)
+        self.declare_parameter('show_window', False)
 
         image_topic = self.get_parameter('image_topic').value
         detections_topic = self.get_parameter('detections_topic').value
         output_topic = self.get_parameter('output_topic').value
         self._box_color = tuple(int(c) for c in self.get_parameter('box_color_bgr').value)
         self._stale_timeout = float(self.get_parameter('stale_detections_timeout_sec').value)
+        self._show_window = bool(self.get_parameter('show_window').value)
 
         self._latest_detections = None
         self._latest_detections_stamp = None
@@ -84,7 +90,8 @@ class DetectionVisualizer(Node):
             Image, image_topic, self._on_image, qos_profile_sensor_data)
 
         self.get_logger().info(
-            f'Overlaying "{detections_topic}" boxes on "{image_topic}" -> "{output_topic}"')
+            f'Overlaying "{detections_topic}" boxes on "{image_topic}" -> "{output_topic}"'
+            + (' (OpenCV window enabled)' if self._show_window else ''))
 
     def _on_detections(self, msg: Detection2DArray):
         self._latest_detections = msg
@@ -107,6 +114,10 @@ class DetectionVisualizer(Node):
                 self._draw_detection(frame, det)
 
         self._image_pub.publish(bgr_numpy_to_image_msg(frame, msg.header))
+
+        if self._show_window:
+            cv2.imshow('DonDron detections', frame)
+            cv2.waitKey(1)
 
     def _draw_detection(self, frame, det):
         cx = det.bbox.center.position.x
@@ -133,6 +144,8 @@ def main(args=None):
     try:
         rclpy.spin(node)
     finally:
+        if node._show_window:
+            cv2.destroyAllWindows()
         node.destroy_node()
         rclpy.shutdown()
 

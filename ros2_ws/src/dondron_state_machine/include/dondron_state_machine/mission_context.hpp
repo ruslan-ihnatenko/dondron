@@ -168,6 +168,36 @@ struct MissionContext
     return ned_z_to_altitude_m(latest_local_position_.z);
   }
 
+  bool has_horizontal_position() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return has_local_position_ && latest_local_position_.xy_valid;
+  }
+
+  double position_x_m() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return latest_local_position_.x;
+  }
+
+  double position_y_m() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return latest_local_position_.y;
+  }
+
+  bool has_heading() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return has_local_position_ && latest_local_position_.heading_good_for_control;
+  }
+
+  double heading_rad() const
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return latest_local_position_.heading;
+  }
+
   rclcpp::Node::SharedPtr node;
 
 private:

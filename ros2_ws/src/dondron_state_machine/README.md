@@ -20,7 +20,8 @@ IDLE → ARM → TAKEOFF → SEARCH → ACQUIRE → TRACK
 | `EnableOffboard` | Action | Publishes `/flight_api/enable_offboard` |
 | `WaitOffboard` | Action | Waits for Offboard nav state |
 | `ClimbToAltitude` | Action | Closed-loop climb to target height via `/fmu/out/vehicle_local_position_v1` |
-| `ExecuteSearchPattern` | Action | Generic search velocities via `/flight_api/cmd_setpoint` |
+| `ExecuteSearchPattern` | Action | Weave search (forward + yaw) via `/flight_api/cmd_setpoint` |
+| `ExecuteOrbitSearch` | Action | Closed-loop circular orbit (NED tangent velocity from local position) |
 | `TargetAcquired` | Condition | Reads `/detections` for target class (read-only) |
 | `TrackTarget` | Action | Maintains visual lock via `/detections` stability |
 | `RTL` / `Land` | Action | DISENGAGE subtree on Offboard exit |
@@ -41,6 +42,25 @@ IDLE → ARM → TAKEOFF → SEARCH → ACQUIRE → TRACK
 Reads PX4 fused local position (`z` in NED → height = `-z` m above local origin). Publishes NED velocity setpoints on `/flight_api/cmd_setpoint` until measured height reaches `altitude_m` within `tolerance_m` (default 0.3 m). If already at/above the target band on entry (e.g. BT relaunch mid-flight), returns SUCCESS without climbing again. Times out to FAILURE after `timeout_s` (default 30 s) if altitude is never reached or no position messages arrive.
 
 BT ports: `altitude_m`, `climb_rate_mps`, `tolerance_m`, `timeout_s`.
+
+## Search pattern switch
+
+ROS param / launch arg `search_pattern`:
+
+| Value | BT node | Behavior |
+|-------|---------|----------|
+| `weave` (default) | `ExecuteSearchPattern` | Forward + sin yaw weave (M2/M3 default) |
+| `orbit` | `ExecuteOrbitSearch` | CCW orbit: expand to radius, tangent velocity + yaw nose toward center (default in `mission.xml`: 25 m, 1.2 m/s, center 8.5 N / 0 E, 120 s) |
+
+Set on `state_machine_node` or via `sil_public.launch.py search_pattern:=orbit`.
+
+For camera + bbox overlay during orbit: `gz_x500_mono_cam`, `camera_bridge`, sim props, `use_yolo:=true`, then either:
+
+```bash
+ros2 run dondron_perception detection_visualizer.py --ros-args -p show_window:=true
+# or
+ros2 run rqt_image_view rqt_image_view /detections/image_annotated
+```
 
 ## Main PC SIL verify (ClimbToAltitude)
 

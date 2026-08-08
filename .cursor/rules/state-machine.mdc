@@ -15,6 +15,8 @@ Arm → EnableOffboard → WaitOffboard → ClimbToAltitude → ExecuteSearchPat
   → TargetAcquired + TrackTarget
 ```
 
+Search pattern: launch param `search_pattern` (`weave` default | `orbit`) selects `ExecuteSearchPattern` vs `ExecuteOrbitSearch` via `IfThenElse` in `mission.xml`.
+
 **TRACK** is the public terminal state (visual lock in BT only). ENGAGE / closed-loop flight lives in private repo Line 2+.
 
 ## DISENGAGE
@@ -33,10 +35,8 @@ Root (ReactiveSequence)
      ├── Action: EnableOffboard
      ├── Action: WaitOffboard
      ├── Action: ClimbToAltitude
-     ├── Action: ExecuteSearchPattern
-     └── ReactiveSequence (acquire_loop)
-          ├── Condition: TargetAcquired
-          └── Action: TrackTarget
+     ├── Action: ExecuteSearchPattern (or ExecuteOrbitSearch)
+     └── Action: TrackTarget  (stable_ticks gate + lost_ticks debounce)
 ```
 
 ## Public boundary
