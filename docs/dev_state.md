@@ -57,7 +57,7 @@ Line 1 milestones — vault tasks in `01_Projects/Robotics/DonDron/Tasks/`:
 
 ## Last commit (Line 1)
 
-- **Orbit search + BT acquire fix:** (this session) on `main` — `feat(state-machine)` orbit pattern; Main PC SIL verified 2026-08-08
+- **Orbit search + BT acquire fix:** `7f5a1cd` on `main` — `feat(state-machine)`; Main PC SIL verified 2026-08-08
 - **ClimbToAltitude closed-loop:** `b30a036` on `main` — `fix(state-machine)`; Main PC SIL verified 2026-08-08
 - **M3 (Main PC SIL):** `84aa0be` (`feat(bringup)`: camera bridge, sim targets, BT XML override), `b6c8e6c` (`feat(perception)`: YOLOv8n GPU inference + detection HUD) on `main` — Mode A + Mode B verified 2026-07-28
 - **M2:** `1abc10f` on `main` — `dondron_flight_api`, `dondron_state_machine`, `dondron_bringup` (`sil_public`); Main PC SIL TRACK verified 2026-07-02
