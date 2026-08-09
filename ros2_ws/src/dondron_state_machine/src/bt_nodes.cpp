@@ -401,7 +401,9 @@ public:
 
     if (elapsed >= duration_s_) {
       publish_hold(ctx);
-      RCLCPP_INFO(ctx->node->get_logger(), "ExecuteOrbitSearch completed %.0f s orbit", duration_s_);
+      RCLCPP_INFO(
+        ctx->node->get_logger(), "ExecuteOrbitSearch completed %.0f s orbit",
+        duration_s_);
       return BT::NodeStatus::SUCCESS;
     }
 
